@@ -4,7 +4,7 @@
   "crons": [
     {
       "path": "/api/internal/browse-index/drain",
-      "schedule": "*/5 * * * *"
+      "schedule": "0 0 * * *"
     }
   ]
 }
