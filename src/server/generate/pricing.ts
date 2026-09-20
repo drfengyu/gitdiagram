@@ -105,10 +105,42 @@ export function resolvePricingModel(model: string): string | null {
 
 export function assertModelPricingAvailable(model: string): string {
   const pricingModel = resolvePricingModel(model);
-  if (!pricingModel) {
-    throw new ModelPricingUnavailableError();
+  if (pricingModel) {
+    return pricingModel;
   }
-  return pricingModel;
+  const configuredModel = normalizeModelId(model);
+  if (configuredModel && getCustomModelPricing()) {
+    return configuredModel;
+  }
+  throw new ModelPricingUnavailableError();
+}
+
+function readUsdPerMillion(name: string): number | null {
+  const raw = process.env[name]?.trim();
+  if (!raw) {
+    return null;
+  }
+  const value = Number(raw);
+  return Number.isFinite(value) && value >= 0 ? value : null;
+}
+
+/**
+ * Gateways advertise model ids this table cannot know about, so an operator can
+ * state the rates they are actually billed. Both rates are required: a
+ * half-configured override would otherwise price a generation as nearly free.
+ */
+function getCustomModelPricing(): ModelPricing | null {
+  const inputPerMillionUsd = readUsdPerMillion(
+    "MODEL_PRICING_INPUT_USD_PER_MILLION",
+  );
+  const outputPerMillionUsd = readUsdPerMillion(
+    "MODEL_PRICING_OUTPUT_USD_PER_MILLION",
+  );
+  if (inputPerMillionUsd === null || outputPerMillionUsd === null) {
+    return null;
+  }
+
+  return { inputPerMillionUsd, outputPerMillionUsd };
 }
 
 export function estimateTextTokenCostUsd(
@@ -118,7 +150,7 @@ export function estimateTextTokenCostUsd(
   serviceTier?: string,
 ): { costUsd: number; pricingModel: string; pricing: ModelPricing } {
   const pricingModel = assertModelPricingAvailable(model);
-  const basePricing = MODEL_PRICING[pricingModel];
+  const basePricing = MODEL_PRICING[pricingModel] ?? getCustomModelPricing();
   if (!basePricing) {
     throw new ModelPricingUnavailableError();
   }

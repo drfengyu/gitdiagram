@@ -193,8 +193,8 @@ export async function estimateGenerationCost(params: {
 
   const noteParts = [
     singlePass
-      ? "Estimate assumes one architecture request and the estimated output usage; repairs and actual usage may cost more."
-      : "Estimate assumes one graph-planning attempt and the estimated output usage; actual usage may be higher.",
+      ? "估算按一次架构分析请求和预估的输出用量计算，修复重试会让实际费用更高。"
+      : "估算按一次图规划尝试和预估的输出用量计算，实际用量可能更高。",
   ];
   if (
     explanationCount.usedFallback ||

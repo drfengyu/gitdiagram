@@ -1,11 +1,13 @@
 import { afterEach, describe, expect, it } from "vitest";
 
 import {
+  getApiStyle,
   getModel,
   getProvider,
   getProviderLabel,
   getGenerationServiceTier,
   shouldUseExactInputTokenCount,
+  supportsExactInputTokenCount,
   supportsTextVerbosity,
 } from "~/server/generate/model-config";
 
@@ -101,4 +103,46 @@ describe("supportsTextVerbosity", () => {
       expect(supportsTextVerbosity(provider, model)).toBe(false);
     },
   );
+});
+
+describe("getApiStyle", () => {
+  it("keeps the Responses capabilities an OpenAI deployment relies on", () => {
+    delete process.env.AI_API_STYLE;
+
+    expect(getApiStyle("openai")).toBe("responses");
+    expect(supportsExactInputTokenCount("openai")).toBe(true);
+    expect(
+      getGenerationServiceTier({ provider: "openai", model: "gpt-5.6-luna" }),
+    ).toBe("priority");
+  });
+
+  it("drops Responses-only behaviour for a Chat Completions gateway", () => {
+    process.env.AI_API_STYLE = "chat";
+
+    expect(getApiStyle("openai")).toBe("chat");
+    expect(supportsExactInputTokenCount("openai")).toBe(false);
+    expect(
+      shouldUseExactInputTokenCount({
+        provider: "openai",
+        apiKey: "apikey-test",
+      }),
+    ).toBe(false);
+    // A gateway that never serves a tier must not be priced as the 2x one.
+    expect(
+      getGenerationServiceTier({ provider: "openai", model: "gpt-5.6-luna" }),
+    ).toBe("default");
+  });
+
+  it("resolves the style from the configured provider", () => {
+    process.env.AI_API_STYLE = "chat";
+    delete process.env.AI_PROVIDER;
+
+    expect(getApiStyle()).toBe("chat");
+  });
+
+  it("ignores the style for OpenRouter, which keeps the Responses client", () => {
+    process.env.AI_API_STYLE = "chat";
+
+    expect(getApiStyle("openrouter")).toBe("responses");
+  });
 });

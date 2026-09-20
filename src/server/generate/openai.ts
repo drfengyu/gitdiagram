@@ -1,5 +1,5 @@
 import OpenAI from "openai";
-import { zodTextFormat } from "openai/helpers/zod";
+import { zodResponseFormat, zodTextFormat } from "openai/helpers/zod";
 import type { ZodType } from "zod";
 
 import type { GenerationTokenUsage } from "~/features/diagram/cost";
@@ -8,8 +8,9 @@ import {
   UpstreamProviderError,
 } from "~/server/generate/errors";
 import {
-  getProviderLabel,
+  getApiStyle,
   getGenerationServiceTier,
+  getProviderLabel,
   supportsTextVerbosity,
   type AIProvider,
 } from "~/server/generate/model-config";
@@ -217,6 +218,264 @@ async function retrieveUsageFromResponseId(
   return normalizeGenerationUsage(response.usage, response.service_tier);
 }
 
+interface ChatCompletionUsage {
+  prompt_tokens?: number | null;
+  completion_tokens?: number | null;
+  total_tokens?: number | null;
+  prompt_tokens_details?: { cached_tokens?: number | null } | null;
+  completion_tokens_details?: { reasoning_tokens?: number | null } | null;
+}
+
+/** Chat usage is the same ledger as Responses usage under different field names. */
+function toGenerationUsage(
+  usage: ChatCompletionUsage | null | undefined,
+): GenerationTokenUsage | null {
+  if (!usage) {
+    return null;
+  }
+
+  return normalizeGenerationUsage({
+    input_tokens: usage.prompt_tokens ?? undefined,
+    output_tokens: usage.completion_tokens ?? undefined,
+    total_tokens: usage.total_tokens ?? undefined,
+    ...(usage.prompt_tokens_details
+      ? {
+          input_tokens_details: {
+            cached_tokens:
+              usage.prompt_tokens_details.cached_tokens ?? undefined,
+          },
+        }
+      : {}),
+    ...(usage.completion_tokens_details
+      ? {
+          output_tokens_details: {
+            reasoning_tokens:
+              usage.completion_tokens_details.reasoning_tokens ?? undefined,
+          },
+        }
+      : {}),
+  });
+}
+
+/**
+ * Some gateways repeat a cumulative `usage` block on every chunk and zero the
+ * counters they have not advanced, so reading only the last chunk would bill the
+ * call as having no input tokens. Keep the high-water mark per counter.
+ */
+function mergeChatUsage(
+  previous: ChatCompletionUsage | null,
+  next: ChatCompletionUsage,
+): ChatCompletionUsage {
+  if (!previous) {
+    return next;
+  }
+
+  const promptTokens = highestCount(previous.prompt_tokens, next.prompt_tokens);
+  const completionTokens = highestCount(
+    previous.completion_tokens,
+    next.completion_tokens,
+  );
+
+  return {
+    prompt_tokens: promptTokens,
+    completion_tokens: completionTokens,
+    ...(typeof promptTokens === "number" && typeof completionTokens === "number"
+      ? { total_tokens: promptTokens + completionTokens }
+      : {
+          total_tokens: highestCount(previous.total_tokens, next.total_tokens),
+        }),
+    ...(previous.prompt_tokens_details || next.prompt_tokens_details
+      ? {
+          prompt_tokens_details: {
+            cached_tokens: highestCount(
+              previous.prompt_tokens_details?.cached_tokens,
+              next.prompt_tokens_details?.cached_tokens,
+            ),
+          },
+        }
+      : {}),
+    ...(previous.completion_tokens_details || next.completion_tokens_details
+      ? {
+          completion_tokens_details: {
+            reasoning_tokens: highestCount(
+              previous.completion_tokens_details?.reasoning_tokens,
+              next.completion_tokens_details?.reasoning_tokens,
+            ),
+          },
+        }
+      : {}),
+  };
+}
+
+function highestCount(
+  previous?: number | null,
+  next?: number | null,
+): number | null | undefined {
+  if (typeof previous === "number" && typeof next === "number") {
+    return Math.max(previous, next);
+  }
+  return previous ?? next;
+}
+
+/**
+ * Operators of self-hosted gateways need request fields this client cannot know
+ * about — `chat_template_kwargs` silencing a reasoning model is the common one —
+ * so they are stated verbatim instead of guessed here.
+ */
+function chatExtraParams(): Record<string, unknown> {
+  const raw = process.env.AI_CHAT_EXTRA_PARAMS?.trim();
+  if (!raw) {
+    return {};
+  }
+
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    parsed = null;
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("AI_CHAT_EXTRA_PARAMS must be a JSON object.");
+  }
+
+  return parsed as Record<string, unknown>;
+}
+
+const CHAT_TRUNCATED_ERROR =
+  "Chat completion stopped before the model finished (finish_reason=length).";
+
+async function streamChatCompletion(
+  params: StreamCompletionParams,
+): Promise<StreamCompletionResult> {
+  const { provider, signal, clientRequestId } = params;
+  const client = createClient(provider, resolveApiKey(provider, params.apiKey));
+  const request: OpenAI.ChatCompletionCreateParamsStreaming = {
+    model: params.model,
+    messages: buildMessages(params.systemPrompt, params.userPrompt),
+    stream: true,
+    // Without this the gateway omits the final usage chunk and the stage is
+    // accounted as zero tokens.
+    stream_options: { include_usage: true },
+    ...(params.outputSchema
+      ? {
+          response_format: zodResponseFormat(
+            params.outputSchema,
+            "repository_architecture",
+          ),
+        }
+      : {}),
+  };
+
+  const stream = await client.chat.completions
+    .create(
+      { ...request, ...chatExtraParams() },
+      buildRequestOptions({ provider, signal, clientRequestId }),
+    )
+    .catch(rethrowAsUpstreamProviderError);
+
+  let usageSettled = false;
+  let resolveUsage!: (usage: GenerationTokenUsage | null) => void;
+  const usagePromise = new Promise<GenerationTokenUsage | null>((resolve) => {
+    resolveUsage = resolve;
+  });
+
+  async function* outputStream(): AsyncGenerator<string, void, void> {
+    let accumulatedUsage: ChatCompletionUsage | null = null;
+    let finished = false;
+
+    try {
+      for await (const chunk of stream) {
+        const choice = chunk.choices?.[0];
+        if (choice?.finish_reason) {
+          if (choice.finish_reason === "length") {
+            throw new Error(CHAT_TRUNCATED_ERROR);
+          }
+          finished = true;
+        }
+        if (chunk.usage) {
+          accumulatedUsage = mergeChatUsage(accumulatedUsage, chunk.usage);
+        }
+        if (choice?.delta?.content) {
+          yield choice.delta.content;
+        }
+      }
+
+      if (!finished) {
+        throw new Error("Chat stream ended before a finish reason.");
+      }
+
+      usageSettled = true;
+      resolveUsage(toGenerationUsage(accumulatedUsage));
+    } catch (error) {
+      resolveUsage(null);
+      usageSettled = true;
+      rethrowAsUpstreamProviderError(error);
+    } finally {
+      // Covers the generator being returned early (a consumer that stops
+      // iterating), which resolves neither branch above.
+      if (!usageSettled) {
+        resolveUsage(null);
+      }
+    }
+  }
+
+  return {
+    stream: outputStream(),
+    usagePromise,
+  };
+}
+
+async function generateStructuredChatOutput<T>(
+  params: StructuredCompletionParams<T>,
+): Promise<{ output: T; rawText: string; usage: GenerationTokenUsage | null }> {
+  const { provider, signal, clientRequestId } = params;
+  const client = createClient(provider, resolveApiKey(provider, params.apiKey));
+  const request: OpenAI.ChatCompletionCreateParamsNonStreaming = {
+    model: params.model,
+    messages: buildMessages(params.systemPrompt, params.userPrompt),
+    response_format: zodResponseFormat(params.schema, params.schemaName),
+  };
+
+  try {
+    const response = await client.chat.completions.create(
+      { ...request, ...chatExtraParams() },
+      buildRequestOptions({ provider, signal, clientRequestId }),
+    );
+
+    const choice = response.choices?.[0];
+    if (choice?.finish_reason === "length") {
+      throw new Error(CHAT_TRUNCATED_ERROR);
+    }
+
+    // A reasoning model that spends the whole budget thinking answers with a
+    // null content, which is the same "no payload" outcome as an unparsed
+    // Responses reply and must retry as such.
+    const content = choice?.message?.content;
+    if (!content) {
+      throw new NoParsedStructuredOutputPayloadError(
+        NO_PARSED_STRUCTURED_PAYLOAD_ERROR,
+      );
+    }
+
+    let output: T;
+    try {
+      output = params.schema.parse(JSON.parse(content));
+    } catch {
+      throw new NoParsedStructuredOutputPayloadError(
+        NO_PARSED_STRUCTURED_PAYLOAD_ERROR,
+      );
+    }
+
+    return {
+      output,
+      rawText: content,
+      usage: toGenerationUsage(response.usage),
+    };
+  } catch (error) {
+    rethrowAsUpstreamProviderError(error);
+  }
+}
+
 export async function streamCompletion({
   provider,
   model,
@@ -229,6 +488,19 @@ export async function streamCompletion({
   signal,
   clientRequestId,
 }: StreamCompletionParams): Promise<StreamCompletionResult> {
+  if (provider === "openai" && getApiStyle(provider) === "chat") {
+    return streamChatCompletion({
+      provider,
+      model,
+      systemPrompt,
+      userPrompt,
+      apiKey,
+      outputSchema,
+      signal,
+      clientRequestId,
+    });
+  }
+
   const client = createClient(provider, resolveApiKey(provider, apiKey));
   const stream = await client.responses
     .create(
@@ -396,23 +668,31 @@ export async function countInputTokens({
   return response.input_tokens;
 }
 
-export async function generateStructuredOutput<T>({
-  provider,
-  model,
-  systemPrompt,
-  userPrompt,
-  schema,
-  schemaName,
-  apiKey,
-  reasoningEffort,
-  textVerbosity,
-  signal,
-  clientRequestId,
-}: StructuredCompletionParams<T>): Promise<{
+export async function generateStructuredOutput<T>(
+  params: StructuredCompletionParams<T>,
+): Promise<{
   output: T;
   rawText: string;
   usage: GenerationTokenUsage | null;
 }> {
+  const {
+    provider,
+    model,
+    systemPrompt,
+    userPrompt,
+    schema,
+    schemaName,
+    apiKey,
+    reasoningEffort,
+    textVerbosity,
+    signal,
+    clientRequestId,
+  } = params;
+
+  if (provider === "openai" && getApiStyle(provider) === "chat") {
+    return generateStructuredChatOutput(params);
+  }
+
   const client = createClient(provider, resolveApiKey(provider, apiKey));
 
   try {

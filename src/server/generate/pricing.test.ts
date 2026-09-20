@@ -1,4 +1,4 @@
-import { describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createEstimateCostSummary,
@@ -31,6 +31,46 @@ describe("resolvePricingModel", () => {
     expect(() =>
       estimateTextTokenCostUsd("anthropic/claude-opus-5", 1_000_000, 1_000_000),
     ).toThrow("暂无成本信息");
+  });
+});
+
+describe("operator-priced gateway models", () => {
+  const GATEWAY_MODEL = "@cf/meta/llama-4-scout";
+
+  afterEach(() => vi.unstubAllEnvs());
+
+  it("prices a model id the built-in table cannot know", () => {
+    vi.stubEnv("MODEL_PRICING_INPUT_USD_PER_MILLION", "0.5");
+    vi.stubEnv("MODEL_PRICING_OUTPUT_USD_PER_MILLION", "2");
+
+    const result = estimateTextTokenCostUsd(GATEWAY_MODEL, 1_000_000, 500_000);
+
+    expect(result.pricingModel).toBe(GATEWAY_MODEL);
+    expect(result.costUsd).toBeCloseTo(1.5, 10);
+  });
+
+  it("keeps built-in pricing ahead of the override", () => {
+    vi.stubEnv("MODEL_PRICING_INPUT_USD_PER_MILLION", "0.5");
+    vi.stubEnv("MODEL_PRICING_OUTPUT_USD_PER_MILLION", "2");
+
+    expect(estimateTextTokenCostUsd("gpt-5.4", 1_000_000, 0).costUsd).toBe(2.5);
+  });
+
+  it("rejects a model when only one rate is configured", () => {
+    vi.stubEnv("MODEL_PRICING_INPUT_USD_PER_MILLION", "0.5");
+
+    expect(() => estimateTextTokenCostUsd(GATEWAY_MODEL, 100, 100)).toThrow(
+      "暂无成本信息",
+    );
+  });
+
+  it("rejects a malformed rate rather than treating the model as free", () => {
+    vi.stubEnv("MODEL_PRICING_INPUT_USD_PER_MILLION", "0.5");
+    vi.stubEnv("MODEL_PRICING_OUTPUT_USD_PER_MILLION", "free");
+
+    expect(() => estimateTextTokenCostUsd(GATEWAY_MODEL, 100, 100)).toThrow(
+      "暂无成本信息",
+    );
   });
 });
 

@@ -6,6 +6,7 @@ const openAiMocks = vi.hoisted(() => ({
   responsesCreate: vi.fn(),
   responsesParse: vi.fn(),
   responsesRetrieve: vi.fn(),
+  chatCompletionsCreate: vi.fn(),
 }));
 
 vi.mock("openai", () => ({
@@ -18,6 +19,12 @@ vi.mock("openai", () => ({
       create: openAiMocks.responsesCreate,
       parse: openAiMocks.responsesParse,
       retrieve: openAiMocks.responsesRetrieve,
+    };
+
+    chat = {
+      completions: {
+        create: openAiMocks.chatCompletionsCreate,
+      },
     };
   },
 }));
@@ -346,5 +353,256 @@ describe("generateStructuredOutput error classification", () => {
     await expect(request).rejects.toThrow(
       "OpenRouter model does not support the required structured graph output: Structured output parsing returned no parsed payload.",
     );
+  });
+});
+
+const GATEWAY_CHUNKS = [
+  { choices: [{ index: 0, delta: { content: '{"ok":tr' } }] },
+  {
+    choices: [{ index: 0, delta: { content: "ue}" }, finish_reason: "stop" }],
+  },
+  {
+    choices: [],
+    usage: {
+      prompt_tokens: 10,
+      completion_tokens: 5,
+      total_tokens: 15,
+      prompt_tokens_details: { cached_tokens: 4 },
+      completion_tokens_details: { reasoning_tokens: 2 },
+    },
+  },
+];
+
+describe("Chat Completions gateway transport", () => {
+  beforeEach(() => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-gateway-test");
+    vi.stubEnv("AI_API_STYLE", "chat");
+    vi.stubEnv(
+      "AI_CHAT_EXTRA_PARAMS",
+      '{"chat_template_kwargs":{"enable_thinking":false}}',
+    );
+  });
+
+  function sentChatRequest() {
+    const [body] = openAiMocks.chatCompletionsCreate.mock.calls[0] ?? [];
+    return body as Record<string, unknown>;
+  }
+
+  it("streams text and bills the usage chunk a gateway only sends on request", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue(
+      asAsyncEvents(GATEWAY_CHUNKS),
+    );
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3.8-27b",
+      systemPrompt: "system",
+      userPrompt: "user",
+    });
+
+    expect(await consume(result.stream)).toEqual(['{"ok":tr', "ue}"]);
+    await expect(result.usagePromise).resolves.toEqual({
+      inputTokens: 10,
+      outputTokens: 5,
+      totalTokens: 15,
+      cachedInputTokens: 4,
+      reasoningTokens: 2,
+    });
+  });
+
+  it("keeps the input tokens when the gateway re-sends cumulative usage that zeroes counters it has not advanced", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue(
+      asAsyncEvents([
+        {
+          choices: [{ index: 0, delta: { content: "hello" } }],
+          usage: {
+            prompt_tokens: 687,
+            completion_tokens: 0,
+            total_tokens: 687,
+            prompt_tokens_details: { cached_tokens: 0 },
+          },
+        },
+        {
+          choices: [{ index: 0, delta: {}, finish_reason: "stop" }],
+          usage: {
+            prompt_tokens: 0,
+            completion_tokens: 42,
+            total_tokens: 42,
+            prompt_tokens_details: { cached_tokens: 0 },
+          },
+        },
+      ]),
+    );
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3.8-27b",
+      systemPrompt: "system",
+      userPrompt: "user",
+    });
+
+    expect(await consume(result.stream)).toEqual(["hello"]);
+    await expect(result.usagePromise).resolves.toMatchObject({
+      inputTokens: 687,
+      outputTokens: 42,
+      totalTokens: 729,
+    });
+  });
+
+  it("omits Responses-only fields and merges the gateway's extra params", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue(
+      asAsyncEvents(GATEWAY_CHUNKS),
+    );
+
+    const stream = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3.8-27b",
+      systemPrompt: "system",
+      userPrompt: "user",
+      reasoningEffort: "high",
+      textVerbosity: "low",
+    });
+    await consume(stream.stream);
+
+    const body = sentChatRequest();
+    expect(body).toMatchObject({
+      model: "@cf/qwen/qwen3.8-27b",
+      messages: [
+        { role: "system", content: "system" },
+        { role: "user", content: "user" },
+      ],
+      stream: true,
+      stream_options: { include_usage: true },
+      chat_template_kwargs: { enable_thinking: false },
+    });
+    expect(Object.keys(body)).not.toContain("service_tier");
+    expect(Object.keys(body)).not.toContain("reasoning_effort");
+    expect(Object.keys(body)).not.toContain("text");
+  });
+
+  it("carries the graph stage request as a strict response_format", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue(
+      asAsyncEvents(GATEWAY_CHUNKS),
+    );
+
+    const stream = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3.8-27b",
+      systemPrompt: "system",
+      userPrompt: "user",
+      outputSchema: z.object({ ok: z.boolean() }),
+    });
+    await consume(stream.stream);
+
+    expect(sentChatRequest().response_format).toMatchObject({
+      type: "json_schema",
+      json_schema: { name: "repository_architecture", strict: true },
+    });
+  });
+
+  it("parses a structured completion into the schema output", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue({
+      choices: [
+        {
+          message: { role: "assistant", content: '{"ok":true}' },
+          finish_reason: "stop",
+        },
+      ],
+      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+    });
+
+    await expect(
+      generateStructuredOutput({
+        provider: "openai",
+        model: "@cf/qwen/qwen3.8-27b",
+        systemPrompt: "system",
+        userPrompt: "user",
+        schema: z.object({ ok: z.boolean() }),
+        schemaName: "diagram_graph",
+      }),
+    ).resolves.toEqual({
+      output: { ok: true },
+      rawText: '{"ok":true}',
+      usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15 },
+    });
+  });
+
+  it("reports a thinking-only reply as a missing payload so the graph retries", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue({
+      choices: [
+        {
+          message: { role: "assistant", content: null },
+          finish_reason: "stop",
+        },
+      ],
+      usage: { prompt_tokens: 10, completion_tokens: 512, total_tokens: 522 },
+    });
+
+    const request = generateStructuredOutput({
+      provider: "openai",
+      model: "@cf/qwen/qwen3.8-27b",
+      systemPrompt: "system",
+      userPrompt: "user",
+      schema: z.object({ ok: z.boolean() }),
+      schemaName: "diagram_graph",
+    });
+    await expect(request).rejects.toBeInstanceOf(UpstreamProviderError);
+    await expect(request).rejects.toThrow("no parsed payload");
+  });
+
+  it("fails a structured reply the gateway cut short at the token cap", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue({
+      choices: [
+        {
+          message: { role: "assistant", content: '{"ok":tr' },
+          finish_reason: "length",
+        },
+      ],
+      usage: { prompt_tokens: 10, completion_tokens: 512, total_tokens: 522 },
+    });
+
+    await expect(
+      generateStructuredOutput({
+        provider: "openai",
+        model: "@cf/qwen/qwen3.8-27b",
+        systemPrompt: "system",
+        userPrompt: "user",
+        schema: z.object({ ok: z.boolean() }),
+        schemaName: "diagram_graph",
+      }),
+    ).rejects.toThrow("finish_reason=length");
+  });
+
+  it("fails a stream the gateway closed before a finish reason", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue(
+      asAsyncEvents([
+        { choices: [{ index: 0, delta: { content: "partial" } }] },
+      ]),
+    );
+
+    const stream = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3.8-27b",
+      systemPrompt: "system",
+      userPrompt: "user",
+    });
+
+    await expect(consume(stream.stream)).rejects.toThrow(
+      "Chat stream ended before a finish reason.",
+    );
+    await expect(stream.usagePromise).resolves.toBeNull();
+  });
+
+  it("refuses to send a malformed extra-params override", async () => {
+    vi.stubEnv("AI_CHAT_EXTRA_PARAMS", "not json");
+
+    await expect(
+      streamCompletion({
+        provider: "openai",
+        model: "@cf/qwen/qwen3.8-27b",
+        systemPrompt: "system",
+        userPrompt: "user",
+      }),
+    ).rejects.toThrow("AI_CHAT_EXTRA_PARAMS must be a JSON object.");
   });
 });
