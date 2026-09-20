@@ -317,7 +317,7 @@ describe("streamDiagramGeneration", () => {
         { username: "openai", repo: "openai-node" },
         { onMessage: vi.fn() },
       ),
-    ).rejects.toThrow("Generation stream ended before completion");
+    ).rejects.toThrow("生成流在完成前中断");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(fetchMock.mock.calls[1]?.[0]).toBe("/api/generate/cancel");
   });
@@ -361,7 +361,7 @@ describe("streamDiagramGeneration", () => {
         { username: "openai", repo: "openai-node" },
         { onMessage: vi.fn() },
       ),
-    ).rejects.toThrow("Too many generation requests");
+    ).rejects.toThrow("生成请求过于频繁");
   });
 
   it("surfaces the server's own rate-limit explanation with status and code", async () => {
@@ -435,7 +435,7 @@ describe("streamDiagramGeneration", () => {
         { onMessage: vi.fn() },
       ),
     ).rejects.toMatchObject({
-      message: "Failed to start streaming",
+      message: "启动生成流失败",
       status: 503,
     });
   });

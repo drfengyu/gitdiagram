@@ -97,9 +97,7 @@ describe("MermaidChart", () => {
     );
 
     expect(container.querySelector(".mermaid")).toBeInTheDocument();
-    expect(
-      screen.queryByText(/Mermaid render failed:/),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText(/Mermaid 渲染失败：/)).not.toBeInTheDocument();
   });
 
   it("uses pure SVG labels so sanitization does not strip node text", async () => {
@@ -238,7 +236,7 @@ describe("MermaidChart", () => {
     render(<MermaidChart chart="flowchart TD\nA-->B" zoomingEnabled={false} />);
 
     expect(
-      await screen.findByText("Mermaid render failed: ELK failed"),
+      await screen.findByText("Mermaid 渲染失败：ELK failed"),
     ).toBeInTheDocument();
     expect(serializationPatchWasActive).toBe(true);
     expect("toJSON" in Element.prototype).toBe(false);
@@ -255,11 +253,11 @@ describe("MermaidChart", () => {
     });
 
     expect(
-      screen.getByRole("region", { name: /interactive diagram viewer/i }),
+      screen.getByRole("region", { name: /交互式图表查看器/ }),
     ).toBeInTheDocument();
-    expect(screen.getByLabelText("Zoom out")).toBeInTheDocument();
-    expect(screen.getByLabelText("Zoom in")).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /fit/i })).toBeInTheDocument();
+    expect(screen.getByLabelText("缩小")).toBeInTheDocument();
+    expect(screen.getByLabelText("放大")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /适应/ })).toBeInTheDocument();
     await waitFor(() => {
       expect(resizeObserverObserveMock).toHaveBeenCalled();
     });
@@ -291,7 +289,7 @@ describe("MermaidChart", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByLabelText("Zoom in")).toBeEnabled();
+      expect(screen.getByLabelText("放大")).toBeEnabled();
     });
     expect(renderMock).toHaveBeenCalledTimes(1);
     expect(onRenderComplete).toHaveBeenCalledTimes(1);
@@ -308,7 +306,7 @@ describe("MermaidChart", () => {
 
     const mermaid = container.querySelector(".mermaid");
     expect(mermaid).toBeInstanceOf(HTMLDivElement);
-    const zoomInButton = screen.getByLabelText("Zoom in");
+    const zoomInButton = screen.getByLabelText("放大");
 
     await waitFor(() => {
       expect(zoomInButton).toBeEnabled();
@@ -409,7 +407,7 @@ describe("MermaidChart", () => {
     await waitFor(() => {
       expect(screen.getByText("100%")).toBeInTheDocument();
     });
-    const zoomInButton = screen.getByLabelText("Zoom in");
+    const zoomInButton = screen.getByLabelText("放大");
 
     await waitFor(() => {
       expect(zoomInButton).toBeEnabled();
@@ -431,7 +429,7 @@ describe("MermaidChart", () => {
       expect(screen.getByText("100%")).toBeInTheDocument();
     });
 
-    const zoomInButton = screen.getByLabelText("Zoom in");
+    const zoomInButton = screen.getByLabelText("放大");
 
     await waitFor(() => {
       expect(zoomInButton).toBeEnabled();
@@ -443,7 +441,7 @@ describe("MermaidChart", () => {
       expect(screen.getByText("118%")).toBeInTheDocument();
     });
 
-    const fitButton = screen.getByRole("button", { name: /fit/i });
+    const fitButton = screen.getByRole("button", { name: /适应/ });
 
     await waitFor(() => {
       expect(fitButton).toBeEnabled();

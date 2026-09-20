@@ -34,30 +34,30 @@ describe("CopyButton", () => {
     renderCopyButton(onClick);
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Copy Mermaid.js code" }),
+      screen.getByRole("button", { name: "复制 Mermaid.js 代码" }),
     );
     expect(
-      screen.queryByRole("button", { name: "Mermaid code copied" }),
+      screen.queryByRole("button", { name: "已复制 Mermaid 代码" }),
     ).not.toBeInTheDocument();
 
     resolveCopy();
-    await screen.findByRole("button", { name: "Mermaid code copied" });
+    await screen.findByRole("button", { name: "已复制 Mermaid 代码" });
   });
 
   it("reports clipboard rejection instead of claiming success", async () => {
     renderCopyButton(() => Promise.reject(new Error("denied")));
 
     fireEvent.click(
-      screen.getByRole("button", { name: "Copy Mermaid.js code" }),
+      screen.getByRole("button", { name: "复制 Mermaid.js 代码" }),
     );
 
     await waitFor(() =>
       expect(
-        screen.getByRole("button", { name: "Copy failed" }),
+        screen.getByRole("button", { name: "复制失败" }),
       ).toBeInTheDocument(),
     );
     expect(
-      screen.queryByRole("button", { name: "Mermaid code copied" }),
+      screen.queryByRole("button", { name: "已复制 Mermaid 代码" }),
     ).not.toBeInTheDocument();
   });
 });

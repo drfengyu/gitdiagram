@@ -19,18 +19,18 @@ import { Input } from "./ui/input";
 
 const CREDENTIAL_LABELS = {
   openai_api_key: {
-    noun: "key",
-    name: "API key",
-    inputLabel: "OpenAI API key",
+    noun: "API Key",
+    name: "API Key",
+    inputLabel: "OpenAI API Key",
     placeholder: "sk-...",
-    saved: "Key saved. Paste a new one to replace it.",
+    saved: "API Key 已保存，粘贴新的可替换。",
   },
   github_pat: {
-    noun: "token",
-    name: "GitHub token",
-    inputLabel: "GitHub personal access token",
+    noun: "令牌",
+    name: "GitHub 令牌",
+    inputLabel: "GitHub 个人访问令牌",
     placeholder: "github_pat_...",
-    saved: "Token saved. Paste a new one to replace it.",
+    saved: "令牌已保存。粘贴新的可替换。",
   },
 } as const;
 
@@ -74,9 +74,9 @@ export function CredentialDialog({
     value,
   } = useCredentialSetting({ credential, isOpen });
   const errors = {
-    load: `Could not load the saved-${labels.noun} status.`,
-    save: `Could not save the ${labels.name}. Please try again.`,
-    clear: `Could not clear the ${labels.name}. Please try again.`,
+    load: `无法读取已保存的${labels.noun}状态。`,
+    save: `无法保存${labels.name}，请重试。`,
+    clear: `无法清除${labels.name}，请重试。`,
   };
 
   const handleSubmit = async (event: React.FormEvent) => {
@@ -115,7 +115,7 @@ export function CredentialDialog({
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-5">
           <div className="space-y-3">
-            <h3 className="text-sm font-bold">1. Create a {labels.noun}</h3>
+            <h3 className="text-sm font-bold">1. 创建{labels.noun}</h3>
             <p className="text-sm text-neutral-700 dark:text-neutral-300">
               {setup.instructions}
             </p>
@@ -132,7 +132,7 @@ export function CredentialDialog({
           </div>
           <div className="space-y-2">
             <label htmlFor={inputId} className="block text-sm font-bold">
-              2. Paste your {labels.noun}
+              2. 粘贴你的{labels.noun}
             </label>
             <Input
               id={inputId}
@@ -144,7 +144,7 @@ export function CredentialDialog({
               spellCheck={false}
               placeholder={
                 isConfigured
-                  ? `Paste a replacement ${labels.noun}`
+                  ? `粘贴用于替换的${labels.noun}`
                   : labels.placeholder
               }
               value={value}
@@ -159,24 +159,24 @@ export function CredentialDialog({
             >
               {isConfigured
                 ? labels.saved
-                : "Saved in this browser for 30 days. Clear it anytime."}
+                : "在本浏览器保存 30 天，可随时清除。"}
             </p>
           </div>
           <details className="text-xs text-neutral-700 dark:text-neutral-300">
             <summary className="neo-link w-fit cursor-pointer font-medium focus-visible:outline-2 focus-visible:outline-offset-4">
-              How your data is used
+              你的数据如何使用
             </summary>
             <p className="mt-2 leading-relaxed">
-              {dataUsage} You can also{" "}
+              {dataUsage} 你也可以{" "}
               <a
                 href={GITHUB_REPO_URL}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="neo-link underline"
               >
-                self-host
+                自托管
               </a>
-              .
+              。
             </p>
           </details>
           {error && (
@@ -195,9 +195,7 @@ export function CredentialDialog({
                 disabled={isPending}
                 className="neo-link min-h-10 text-sm disabled:cursor-not-allowed disabled:opacity-50"
               >
-                {pendingAction === "clear"
-                  ? "Clearing..."
-                  : `Clear ${labels.noun}`}
+                {pendingAction === "clear" ? "清除中..." : `清除${labels.noun}`}
               </button>
             )}
             <div className="ml-auto grid grid-cols-2 gap-3">
@@ -207,7 +205,7 @@ export function CredentialDialog({
                 disabled={isPending}
                 className={controls.actionButton}
               >
-                Cancel
+                取消
               </button>
               <button
                 type="submit"
@@ -215,10 +213,10 @@ export function CredentialDialog({
                 className={`${controls.actionButton} ${controls.primary}`}
               >
                 {pendingAction === "save"
-                  ? "Saving..."
+                  ? "保存中..."
                   : onSaved
-                    ? "Save & retry"
-                    : `Save ${labels.noun}`}
+                    ? "保存并重试"
+                    : `保存${labels.noun}`}
               </button>
             </div>
           </div>
@@ -254,17 +252,17 @@ function CopySetupPrompt({ prompt }: { prompt: string }) {
         )}
         <span aria-live="polite">
           {status === "copied"
-            ? "Copied! Paste into your AI"
-            : "Copy prompt for my AI"}
+            ? "已复制！粘贴到你的 AI"
+            : "为我的 AI 复制提示词"}
         </span>
       </button>
       {status === "failed" && (
         <div className="space-y-2">
           <p role="alert" className="text-sm">
-            Couldn’t copy. Select the prompt below to copy it manually.
+            无法复制。请选择下方提示词手动复制。
           </p>
           <textarea
-            aria-label="AI setup prompt"
+            aria-label="AI 设置提示词"
             readOnly
             value={prompt}
             onFocus={(event) => event.currentTarget.select()}

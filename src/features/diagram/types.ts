@@ -1,4 +1,5 @@
 import type { GenerationCostSummary } from "~/features/diagram/cost";
+import type { GenerationErrorCode } from "~/features/diagram/error-codes";
 import type {
   DiagramGraph,
   GenerationSessionAudit,
@@ -33,7 +34,7 @@ export interface DiagramStreamState {
   graph?: DiagramGraph;
   graphAttempts?: GraphAttemptAudit[];
   error?: string;
-  errorCode?: string;
+  errorCode?: GenerationErrorCode;
   validationError?: string;
   failureStage?: string;
   latestSessionAudit?: GenerationSessionAudit;
@@ -53,7 +54,7 @@ export interface DiagramStreamMessage {
   graph?: DiagramGraph;
   graph_attempts?: GraphAttemptAudit[];
   error?: string;
-  error_code?: string;
+  error_code?: GenerationErrorCode;
   validation_error?: string;
   failure_stage?: string;
   latest_session_audit?: GenerationSessionAudit;

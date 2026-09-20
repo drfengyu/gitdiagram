@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 
 import type { DiagramStateResponse } from "~/features/diagram/types";
+import { isGenerationErrorCode } from "~/features/diagram/error-codes";
 import type { GenerationSessionAudit } from "~/features/diagram/graph";
 import { redactUpstreamProviderTextForSharedRecord } from "~/server/generate/errors";
 import {
@@ -62,7 +63,13 @@ export function toStoredSessionSummary(
     // raw upstream provider text must never survive into it.
     validationError: redactUpstreamProviderTextForSharedRecord(
       audit.validationError,
+      audit.upstreamProviderText,
     ),
+    // Re-checked rather than copied blindly: this runs on records read back
+    // from storage, and the value drives which call to action a visitor sees.
+    errorCode: isGenerationErrorCode(audit.errorCode)
+      ? audit.errorCode
+      : undefined,
     failureStage: audit.failureStage,
     compilerError: audit.compilerError,
     renderError: audit.renderError,

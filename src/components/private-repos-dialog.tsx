@@ -24,44 +24,46 @@ export function PrivateReposDialog({
     ...(repository ? { target_name: repository.split("/")[0]! } : {}),
   }).toString();
   const aiPrompt = [
-    `Help me connect ${repository ? `https://github.com/${repository}` : "a private GitHub repository"} to GitDiagram.`,
-    `Use my browser to open ${tokenUrl.toString()} and create a fine-grained personal access token named GitDiagram that expires in 30 days.`,
     repository
-      ? `Choose the resource owner ${repository.split("/")[0]} and grant access only to the ${repository} repository.`
-      : "Ask me which repository I want to use, then choose its resource owner and grant access only to that repository.",
-    "Set repository Contents to Read-only; Metadata read access is included automatically. Do not add write or account permissions.",
-    "If the organization requires approval, tell me what its admin needs to approve.",
-    "Help me paste the token directly into GitDiagram's GitHub access dialog and save it. Do not put the token in chat, logs, or files.",
-    "If you cannot use my browser, walk me through these steps briefly.",
+      ? `帮我把 https://github.com/${repository} 接入 GitDiagram。`
+      : "帮我把一个私有 GitHub 仓库接入 GitDiagram。",
+    `用我的浏览器打开 ${tokenUrl.toString()}，创建一个名为 GitDiagram、30 天过期的 fine-grained personal access token。`,
+    repository
+      ? `资源所有者选择 ${repository.split("/")[0]}，并且只授权 ${repository} 这一个仓库。`
+      : "先问我要使用哪个仓库，然后选择它的资源所有者，并且只授权那一个仓库。",
+    "把仓库的 Contents 权限设为只读，Metadata 只读会自动包含。不要添加任何写入或账户权限。",
+    "如果组织需要审批，告诉我要让组织的管理员审批什么。",
+    "帮我把令牌直接粘贴到 GitDiagram 的 GitHub 访问对话框并保存。不要把令牌放进对话、日志或文件里。",
+    "如果你无法使用我的浏览器，请简要地带我完成这些步骤。",
   ].join("\n\n");
 
   return (
     <CredentialDialog
       {...props}
       credential="github_pat"
-      title="GitHub access"
-      description="Use a token to let GitDiagram read your private repository."
+      title="GitHub 访问"
+      description="使用令牌让 GitDiagram 读取你的私有仓库。"
       setup={{
         instructions: (
           <>
-            Choose the repository owner and select{" "}
+            选择仓库所有者并选中{" "}
             {repository ? (
               <strong className="break-all">{repository}</strong>
             ) : (
-              "your repository"
+              "你的仓库"
             )}
-            . <strong>Contents: Read-only</strong> is already selected.
+            。<strong>Contents: Read-only</strong> 已默认选好。
           </>
         ),
         url: tokenUrl.toString(),
-        linkLabel: "Create token on GitHub",
+        linkLabel: "在 GitHub 创建令牌",
         aiPrompt,
       }}
       dataUsage={
         <>
-          Your token is kept in a protected browser cookie for 30 days.
-          Repository content is sent to the AI provider to generate your
-          diagram. Private diagrams are stored privately on GitDiagram.
+          你的令牌会保存在受保护的浏览器 cookie 中，有效期 30
+          天。仓库内容会发送给 AI 服务商以生成你的图表。私有图表会在 GitDiagram
+          上私密保存。
         </>
       }
     />

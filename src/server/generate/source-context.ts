@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { excerptSource } from "./source-excerpt";
 import { getGitHubApiHeaders } from "../github-auth";
+import { GitHubApiError } from "./github-errors";
 import type { GithubData, SourceBlob } from "./github";
 import {
   MAX_SOURCE_CHARACTERS,
@@ -8,6 +9,7 @@ import {
   MAX_SOURCE_FILES,
   isArchitectureSource,
 } from "./repository-context";
+import { PRIVATE_REPOSITORY_AUTH_REQUIRED_ERROR } from "./github";
 
 interface SourceExcerpt {
   path: string;
@@ -136,8 +138,9 @@ export async function fetchSourceContext(params: {
 }): Promise<SourceContext> {
   params.signal?.throwIfAborted();
   if (params.githubData.isPrivate && !params.githubPat?.trim())
-    throw new Error(
-      "A GitHub token is required to analyze a private repository.",
+    throw new GitHubApiError(
+      "token_required",
+      PRIVATE_REPOSITORY_AUTH_REQUIRED_ERROR,
     );
   const paths = params.selectedPaths
     .filter(isArchitectureSource)

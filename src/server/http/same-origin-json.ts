@@ -8,9 +8,9 @@ export const NO_STORE_RESPONSE_HEADERS = {
 } as const;
 
 const DEFAULT_MESSAGES = {
-  invalidContentType: "Content-Type must be application/json.",
-  invalidPayload: "Invalid request payload.",
-  payloadTooLarge: "Request payload is too large.",
+  invalidContentType: "Content-Type 必须是 application/json。",
+  invalidPayload: "请求内容无效。",
+  payloadTooLarge: "请求内容过大。",
 } as const;
 
 type SameOriginJsonRequestOptions<T> = {

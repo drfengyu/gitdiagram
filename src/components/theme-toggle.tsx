@@ -19,7 +19,7 @@ export function ThemeToggle({ className, onToggle }: ThemeToggleProps) {
   if (!mounted) {
     return (
       <button type="button" className={cn(baseClassName, className)}>
-        Dark
+        深色
       </button>
     );
   }
@@ -33,10 +33,10 @@ export function ThemeToggle({ className, onToggle }: ThemeToggleProps) {
         setTheme(isDark ? "light" : "dark");
         onToggle?.();
       }}
-      aria-label={isDark ? "Switch to light mode" : "Switch to dark mode"}
+      aria-label={isDark ? "切换到浅色模式" : "切换到深色模式"}
       className={cn(baseClassName, className)}
     >
-      {isDark ? "Light" : "Dark"}
+      {isDark ? "浅色" : "深色"}
     </button>
   );
 }

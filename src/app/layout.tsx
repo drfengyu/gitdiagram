@@ -9,8 +9,7 @@ import { SITE_URL } from "~/lib/site";
 
 export const metadata: Metadata = {
   title: "GitDiagram",
-  description:
-    "Turn any GitHub repository into an interactive diagram for visualization in seconds.",
+  description: "输入任意 GitHub 仓库地址，几秒生成可交互的架构图。",
   metadataBase: new URL(SITE_URL),
   keywords: [
     "github",
@@ -30,6 +29,12 @@ export const metadata: Metadata = {
     "software development",
     "open source",
     "open source software",
+    "架构图",
+    "仓库架构图",
+    "代码结构图",
+    "系统架构图生成",
+    "GitHub 可视化工具",
+    "架构图在线生成",
     "ahmedkhaleel2004",
     "ahmed khaleel",
     "gitdiagram",
@@ -41,18 +46,16 @@ export const metadata: Metadata = {
   creator: "Ahmed Khaleel",
   openGraph: {
     type: "website",
-    locale: "en_US",
+    locale: "zh_CN",
     url: SITE_URL,
-    title: "GitDiagram - Repository to Diagram in Seconds",
-    description:
-      "Turn any GitHub repository into an interactive diagram for visualization.",
+    title: "GitDiagram - 几秒把仓库变成架构图",
+    description: "输入任意 GitHub 仓库地址，生成可交互的架构图。",
     siteName: "GitDiagram",
   },
   twitter: {
     card: "summary_large_image",
-    title: "GitDiagram - Repository to Diagram in Seconds",
-    description:
-      "Turn any GitHub repository into an interactive diagram for visualization.",
+    title: "GitDiagram - 几秒把仓库变成架构图",
+    description: "输入任意 GitHub 仓库地址，生成可交互的架构图。",
     creator: "@ahmedkhaleel2004",
   },
   robots: {
@@ -73,7 +76,7 @@ export default function RootLayout({
 }: Readonly<{ children: React.ReactNode }>) {
   return (
     <html
-      lang="en"
+      lang="zh-CN"
       suppressHydrationWarning
       className={`${GeistSans.variable}`}
     >

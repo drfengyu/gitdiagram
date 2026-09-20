@@ -61,7 +61,7 @@ export default function MainCard({
 
     const parsed = parseGitHubRepoUrl(repoUrl);
     if (!parsed) {
-      setError("Please enter a valid GitHub repository URL or owner/repo");
+      setError("请输入有效的 GitHub 仓库 URL 或 owner/repo");
       return;
     }
 
@@ -91,11 +91,11 @@ export default function MainCard({
       <form onSubmit={handleSubmit} className="space-y-3.5 sm:space-y-6">
         <div className="flex flex-col gap-3 sm:flex-row sm:gap-4">
           <label htmlFor="repository-input" className="sr-only">
-            GitHub repository
+            GitHub 仓库
           </label>
           <Input
             id="repository-input"
-            placeholder="owner/repo or GitHub URL"
+            placeholder="owner/repo 或 GitHub URL"
             className={
               isHome
                 ? "neo-input h-14 min-w-0 rounded-md px-4 py-0 text-base font-bold placeholder:text-base placeholder:font-normal placeholder:text-gray-700 sm:h-10 sm:flex-1 sm:px-4 sm:py-6 sm:text-lg sm:placeholder:text-lg dark:placeholder:text-neutral-400"
@@ -115,7 +115,7 @@ export default function MainCard({
                 : styles.submit
             }
           >
-            Diagram
+            生成图表
           </Button>
         </div>
 
@@ -141,7 +141,7 @@ export default function MainCard({
                       data-repo-action="regenerate"
                       title={
                         isExampleRepoSelected
-                          ? "Regeneration is disabled for example repositories."
+                          ? "示例仓库不支持重新生成。"
                           : undefined
                       }
                       className={`flex min-h-11 w-full items-center justify-center gap-2 rounded-md border-[3px] border-black px-2 py-2 text-sm leading-tight font-semibold text-black transition-[background-color,transform] duration-150 ease-[var(--ease-out)] active:scale-[0.97] motion-reduce:active:scale-100 motion-reduce:active:opacity-80 sm:min-h-0 sm:w-auto sm:max-w-[250px] sm:justify-between sm:px-4 sm:text-base sm:font-medium dark:text-black ${
@@ -156,10 +156,8 @@ export default function MainCard({
                         onRegenerate();
                       }}
                     >
-                      <span className="sm:hidden">Regenerate</span>
-                      <span className="hidden sm:inline">
-                        Regenerate Diagram
-                      </span>
+                      <span className="sm:hidden">重新生成</span>
+                      <span className="hidden sm:inline">重新生成图表</span>
                     </button>
                   )}
                   {hasDiagram && onCopy && onExportImage && (
@@ -177,8 +175,8 @@ export default function MainCard({
                           : "bg-purple-300 hover:bg-purple-400 dark:border-[#2d1d4e] dark:bg-[hsl(var(--neo-subtle-muted))] dark:hover:bg-[hsl(var(--neo-button-hover))]"
                       }`}
                     >
-                      <span className="sm:hidden">Export</span>
-                      <span className="hidden sm:inline">Export Diagram</span>
+                      <span className="sm:hidden">导出</span>
+                      <span className="hidden sm:inline">导出图表</span>
                       <ChevronDown
                         size={20}
                         aria-hidden="true"
@@ -194,7 +192,7 @@ export default function MainCard({
                         htmlFor="zoom-toggle"
                         className="text-sm font-semibold text-black sm:text-base sm:font-medium dark:text-neutral-100"
                       >
-                        Enable Zoom
+                        启用缩放
                       </label>
                       <Switch
                         id="zoom-toggle"
@@ -224,7 +222,7 @@ export default function MainCard({
           <div className="space-y-4">
             <div className="space-y-2 sm:space-y-3">
               <div className="text-sm font-medium text-gray-700 sm:text-base dark:text-neutral-300">
-                Try these example repositories:
+                试试这些示例仓库：
               </div>
               <div className="flex flex-wrap gap-2">
                 {Object.entries(exampleRepos).map(([name, path]) => (

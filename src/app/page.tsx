@@ -3,9 +3,8 @@ import Hero from "~/components/hero";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "GitDiagram - Visualize Any GitHub Repository",
-  description:
-    "Turn any GitHub repository into an interactive architecture diagram for quick codebase understanding.",
+  title: "GitDiagram - 任意 GitHub 仓库一键生成架构图",
+  description: "把任意 GitHub 仓库变成可交互的架构图，快速理解代码结构。",
   alternates: {
     canonical: "/",
   },
@@ -17,13 +16,10 @@ export default function HomePage() {
       <div className="mx-auto mb-5 max-w-4xl pt-9 sm:mb-4 sm:pt-0 lg:my-8">
         <Hero />
         <div className="mx-auto mt-5 max-w-[22rem] space-y-2 text-center text-[1.0625rem] leading-6 text-balance text-[hsl(var(--neo-soft-text))] sm:mt-12 sm:max-w-2xl sm:text-lg sm:leading-normal">
-          <p>
-            Turn any GitHub repository into an interactive diagram for
-            visualization.
-          </p>
+          <p>输入任意 GitHub 仓库地址，生成可交互的架构图。</p>
           <p className="hidden sm:block">
-            Or, replace &apos;hub&apos; with &apos;diagram&apos; in any GitHub
-            URL.
+            也可以把任意 GitHub 网址里的 &apos;hub&apos; 换成
+            &apos;diagram&apos；。
           </p>
         </div>
       </div>

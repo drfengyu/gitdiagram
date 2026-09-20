@@ -62,14 +62,14 @@ describe("credential dialogs", () => {
     render(<ApiKeyDialog isOpen onClose={onClose} onSaved={onSaved} />);
 
     await waitFor(() => expect(mocks.getCredentialStatus).toHaveBeenCalled());
-    const input = screen.getByLabelText("OpenAI API key", {
+    const input = screen.getByLabelText("OpenAI API Key", {
       selector: "input",
     });
     expect(input).toHaveValue("");
     expect(input.closest(".ph-no-capture")).toBe(screen.getByRole("dialog"));
 
     fireEvent.change(input, { target: { value: "sk-browser-entry" } });
-    fireEvent.click(screen.getByRole("button", { name: "Save & retry" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存并重试" }));
 
     await waitFor(() =>
       expect(mocks.saveCredential).toHaveBeenCalledWith(
@@ -90,15 +90,15 @@ describe("credential dialogs", () => {
     render(<ApiKeyDialog isOpen onClose={vi.fn()} />);
 
     fireEvent.change(
-      screen.getByLabelText("OpenAI API key", { selector: "input" }),
+      screen.getByLabelText("OpenAI API Key", { selector: "input" }),
       {
         target: { value: "sk-browser-entry" },
       },
     );
-    fireEvent.click(screen.getByRole("button", { name: "Save key" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存API Key" }));
 
     expect(
-      await screen.findByText("Key saved. Paste a new one to replace it."),
+      await screen.findByText("API Key 已保存，粘贴新的可替换。"),
     ).toBeInTheDocument();
 
     credentialStatus.resolve({
@@ -108,7 +108,7 @@ describe("credential dialogs", () => {
 
     await waitFor(() =>
       expect(
-        screen.getByText("Key saved. Paste a new one to replace it."),
+        screen.getByText("API Key 已保存，粘贴新的可替换。"),
       ).toBeInTheDocument(),
     );
   });
@@ -121,18 +121,18 @@ describe("credential dialogs", () => {
     const onClose = vi.fn();
     render(<PrivateReposDialog isOpen onClose={onClose} />);
 
-    await screen.findByText("Token saved. Paste a new one to replace it.");
-    fireEvent.click(screen.getByRole("button", { name: "Clear token" }));
+    await screen.findByText("令牌已保存。粘贴新的可替换。");
+    fireEvent.click(screen.getByRole("button", { name: "清除令牌" }));
     await waitFor(() =>
       expect(mocks.clearCredential).toHaveBeenCalledWith("github_pat"),
     );
 
-    const input = screen.getByLabelText("GitHub personal access token");
+    const input = screen.getByLabelText("GitHub 个人访问令牌");
     expect(input.closest(".ph-no-capture")).toBe(screen.getByRole("dialog"));
     fireEvent.change(input, {
       target: { value: "github_pat_fine_grained" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Save token" }));
+    fireEvent.click(screen.getByRole("button", { name: "保存令牌" }));
     await waitFor(() =>
       expect(mocks.saveCredential).toHaveBeenCalledWith(
         "github_pat",
@@ -145,7 +145,7 @@ describe("credential dialogs", () => {
     render(
       <PrivateReposDialog isOpen onClose={vi.fn()} repository="acme/demo" />,
     );
-    const link = screen.getByRole("link", { name: "Create token on GitHub" });
+    const link = screen.getByRole("link", { name: "在 GitHub 创建令牌" });
     const url = new URL(link.getAttribute("href")!);
     expect(url.origin + url.pathname).toBe(
       "https://github.com/settings/personal-access-tokens/new",
@@ -156,19 +156,19 @@ describe("credential dialogs", () => {
       target_name: "acme",
     });
     expect(link).toHaveAttribute("target", "_blank");
-    fireEvent.change(screen.getByLabelText("GitHub personal access token"), {
+    fireEvent.change(screen.getByLabelText("GitHub 个人访问令牌"), {
       target: { value: "github_pat_secret" },
     });
     fireEvent.click(
-      screen.getByRole("button", { name: "Copy prompt for my AI" }),
+      screen.getByRole("button", { name: "为我的 AI 复制提示词" }),
     );
     await screen.findByRole("button", {
-      name: "Copied! Paste into your AI",
+      name: "已复制！粘贴到你的 AI",
     });
     const prompt = mocks.writeText.mock.calls[0]![0] as string;
     expect(prompt).toContain("https://github.com/acme/demo");
-    expect(prompt).toContain("Contents to Read-only");
-    expect(prompt).toContain("Do not put the token in chat, logs, or files.");
+    expect(prompt).toContain("Contents 权限设为只读");
+    expect(prompt).toContain("不要把令牌放进对话、日志或文件里。");
     expect(prompt).not.toContain("github_pat_secret");
     expect(mocks.saveCredential).not.toHaveBeenCalled();
   });
@@ -177,40 +177,42 @@ describe("credential dialogs", () => {
     mocks.writeText.mockRejectedValueOnce(new Error("Clipboard denied"));
     render(<PrivateReposDialog isOpen onClose={vi.fn()} />);
     fireEvent.click(
-      screen.getByRole("button", { name: "Copy prompt for my AI" }),
+      screen.getByRole("button", { name: "为我的 AI 复制提示词" }),
     );
     const fallback = await screen.findByRole("textbox", {
-      name: "AI setup prompt",
+      name: "AI 设置提示词",
     });
     expect(fallback).toHaveAttribute("readonly");
     expect((fallback as HTMLTextAreaElement).value).toContain(
-      "Ask me which repository",
+      "先问我要使用哪个仓库",
     );
-    expect(screen.getByRole("alert")).toHaveTextContent("Couldn’t copy");
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "无法复制。请选择下方提示词手动复制。",
+    );
   });
 
   it("opens OpenAI setup separately and copies instructions without the entered key", async () => {
     render(<ApiKeyDialog isOpen onClose={vi.fn()} />);
     expect(
-      screen.getByRole("link", { name: "Create key on OpenAI" }),
+      screen.getByRole("link", { name: "在 OpenAI 创建 API Key" }),
     ).toHaveAttribute("href", "https://platform.openai.com/api-keys");
     expect(
-      screen.getByRole("link", { name: "Create key on OpenAI" }),
+      screen.getByRole("link", { name: "在 OpenAI 创建 API Key" }),
     ).toHaveAttribute("target", "_blank");
     fireEvent.change(
-      screen.getByLabelText("OpenAI API key", { selector: "input" }),
+      screen.getByLabelText("OpenAI API Key", { selector: "input" }),
       {
         target: { value: "sk-secret-entry" },
       },
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "Copy prompt for my AI" }),
+      screen.getByRole("button", { name: "为我的 AI 复制提示词" }),
     );
-    await screen.findByRole("button", { name: "Copied! Paste into your AI" });
+    await screen.findByRole("button", { name: "已复制！粘贴到你的 AI" });
     const prompt = mocks.writeText.mock.calls[0]![0] as string;
     expect(prompt).toContain("https://platform.openai.com/api-keys");
-    expect(prompt).toContain("billed to my OpenAI API account");
-    expect(prompt).toContain("Do not put the key in chat, logs, or files.");
+    expect(prompt).toContain("计入我的 OpenAI API 账户费用");
+    expect(prompt).toContain("不要把密钥放进对话、日志或文件里。");
     expect(prompt).not.toContain("sk-secret-entry");
     expect(mocks.saveCredential).not.toHaveBeenCalled();
   });
@@ -219,15 +221,15 @@ describe("credential dialogs", () => {
     {
       name: "API key",
       Component: ApiKeyDialog,
-      inputLabel: "OpenAI API key",
-      noun: "key",
+      inputLabel: "OpenAI API Key",
+      noun: "API Key",
       credential: "openai_api_key",
     },
     {
       name: "GitHub token",
       Component: PrivateReposDialog,
-      inputLabel: "GitHub personal access token",
-      noun: "token",
+      inputLabel: "GitHub 个人访问令牌",
+      noun: "令牌",
       credential: "github_pat",
     },
   ])("$name behavior", ({ Component, inputLabel, noun, credential }) => {
@@ -236,10 +238,10 @@ describe("credential dialogs", () => {
       const onClose = vi.fn();
       const onSaved = vi.fn();
       render(<Component isOpen onClose={onClose} onSaved={onSaved} />);
-      const saveButton = screen.getByRole("button", { name: "Save & retry" });
+      const saveButton = screen.getByRole("button", { name: "保存并重试" });
       expect(saveButton).toBeDisabled();
       expect(
-        screen.queryByRole("button", { name: `Clear ${noun}` }),
+        screen.queryByRole("button", { name: `清除${noun}` }),
       ).not.toBeInTheDocument();
       fireEvent.change(
         screen.getByLabelText(inputLabel, { selector: "input" }),
@@ -273,14 +275,10 @@ describe("credential dialogs", () => {
       const onSaved = vi.fn();
       render(<Component isOpen onClose={onClose} onSaved={onSaved} />);
       fireEvent.click(
-        await screen.findByRole("button", { name: `Clear ${noun}` }),
+        await screen.findByRole("button", { name: `清除${noun}` }),
       );
-      expect(
-        screen.getByRole("button", { name: "Clearing..." }),
-      ).toBeDisabled();
-      expect(
-        screen.getByRole("button", { name: "Save & retry" }),
-      ).toBeDisabled();
+      expect(screen.getByRole("button", { name: "清除中..." })).toBeDisabled();
+      expect(screen.getByRole("button", { name: "保存并重试" })).toBeDisabled();
       expect(
         screen.getByLabelText(inputLabel, { selector: "input" }),
       ).toBeDisabled();
@@ -313,8 +311,8 @@ describe("credential dialogs", () => {
           target: { value: "test-secret" },
         },
       );
-      fireEvent.click(screen.getByRole("button", { name: "Save & retry" }));
-      expect(screen.getByRole("button", { name: "Saving..." })).toBeDisabled();
+      fireEvent.click(screen.getByRole("button", { name: "保存并重试" }));
+      expect(screen.getByRole("button", { name: "保存中..." })).toBeDisabled();
       rerender(
         <Component isOpen={false} onClose={onClose} onSaved={onSaved} />,
       );
@@ -338,13 +336,13 @@ describe("credential dialogs", () => {
         },
       );
       fireEvent.click(
-        screen.getByRole("button", { name: "Copy prompt for my AI" }),
+        screen.getByRole("button", { name: "为我的 AI 复制提示词" }),
       );
-      await screen.findByRole("button", { name: "Copied! Paste into your AI" });
+      await screen.findByRole("button", { name: "已复制！粘贴到你的 AI" });
       rerender(<Component isOpen={false} onClose={onClose} />);
       rerender(<Component isOpen onClose={onClose} />);
       expect(
-        screen.getByRole("button", { name: "Copy prompt for my AI" }),
+        screen.getByRole("button", { name: "为我的 AI 复制提示词" }),
       ).toBeInTheDocument();
       expect(
         screen.getByLabelText(inputLabel, { selector: "input" }),

@@ -13,7 +13,10 @@ import { useStarReminder } from "~/hooks/useStarReminder";
 import { Toaster } from "~/components/ui/sonner";
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { isExampleRepo } from "~/lib/exampleRepos";
-import { githubAccessTitle } from "~/features/diagram/github-access";
+import {
+  githubAccessTitle,
+  isApiKeyCtaErrorCode,
+} from "~/features/diagram/github-access";
 import controls from "~/components/generation/workspace.module.css";
 
 const PrivateReposDialog = dynamic(
@@ -44,7 +47,6 @@ export default function RepoPageClient({
   const repository = `${normalizedUsername}/${normalizedRepo}`;
   const {
     diagram,
-    error,
     loading,
     lastGenerated,
     showApiKeyDialog,
@@ -62,10 +64,7 @@ export default function RepoPageClient({
     initialStateIsAuthoritative,
   );
   const hasDiagram = Boolean(diagram);
-  const showApiKeyCta =
-    state.errorCode === "RATE_LIMITED" ||
-    Boolean(error?.includes("API key")) ||
-    Boolean(state.error?.includes("API key"));
+  const showApiKeyCta = isApiKeyCtaErrorCode(state.errorCode);
   const showGithubAccessCta = Boolean(githubAccessTitle(state.errorCode));
 
   useEffect(() => {
@@ -73,7 +72,7 @@ export default function RepoPageClient({
   }, [hasDiagram, loading]);
   useEffect(() => {
     if (!state.persistenceWarning) return;
-    toast.warning("Diagram generated, but not saved", {
+    toast.warning("图表已生成，但未保存到服务端", {
       description: state.persistenceWarning,
       duration: 8_000,
     });
@@ -100,7 +99,7 @@ export default function RepoPageClient({
                   className={`${controls.actionButton} ${controls.primary}`}
                 >
                   <LockKeyhole size={14} aria-hidden="true" />
-                  Add GitHub access
+                  添加 GitHub 访问
                 </button>
               )}
               {showApiKeyCta && (
@@ -110,7 +109,7 @@ export default function RepoPageClient({
                   className={`${controls.actionButton} ${controls.primary}`}
                 >
                   <Key size={14} aria-hidden="true" />
-                  Use Your AI Key
+                  使用你自己的 API Key
                 </button>
               )}
               <a
@@ -119,8 +118,8 @@ export default function RepoPageClient({
                 rel="noopener noreferrer"
                 className={controls.actionButton}
               >
-                <ExternalLink className="h-4 w-4" aria-hidden="true" />
-                Open repository on GitHub
+                <ExternalLink className="h-4 w-4" aria-hidden="true" />在 GitHub
+                中打开仓库
               </a>
             </>
           }

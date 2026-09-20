@@ -25,13 +25,13 @@ export function SponsorPlacementPreview({
         <button
           type="button"
           className={styles.trigger}
-          aria-label={`View placement: ${name}`}
+          aria-label={`查看展示位置：${name}`}
           onClick={(event) => setInstant(event.detail === 0)}
           onPointerEnter={preloadImage}
           onFocus={preloadImage}
         >
           <Expand aria-hidden="true" />
-          View placement
+          查看展示位置
         </button>
       </Dialog.Trigger>
       <Dialog.Portal>
@@ -57,16 +57,16 @@ export function SponsorPlacementPreview({
               target="_blank"
               rel="noopener noreferrer"
             >
-              Open full size
+              查看大图
               <ArrowUpRight aria-hidden="true" />
             </a>
           </div>
           <Dialog.Description className="sr-only">
-            {preview.caption} Click outside the image or press Escape to close.
+            {preview.caption} 点击图片外部或按 Escape 关闭。
           </Dialog.Description>
           {!imageReady && (
             <span className={styles.loading} role="status">
-              Loading preview…
+              正在加载预览……
             </span>
           )}
           <div
@@ -101,7 +101,7 @@ export function SponsorPlacementPreview({
             className={styles.accessibleClose}
             onClick={() => setInstant(true)}
           >
-            Close preview
+            关闭预览
           </Dialog.Close>
         </Dialog.Content>
       </Dialog.Portal>

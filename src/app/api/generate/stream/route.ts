@@ -12,6 +12,7 @@ import { after } from "next/server";
 
 import type { GenerationTokenUsage } from "~/features/diagram/cost";
 import type { DiagramStreamMessage } from "~/features/diagram/types";
+import type { GenerationErrorCode } from "~/features/diagram/error-codes";
 import type { ArtifactVisibility } from "~/server/storage/types";
 import {
   admitComplimentaryQuota,
@@ -284,7 +285,7 @@ export async function POST(request: Request) {
           send({
             status: "started",
             session_id: audit.sessionId,
-            message: "Fetching repository data...",
+            message: "正在获取仓库数据…",
           });
           const provider = getProvider();
           const model = getModel(provider);
@@ -305,6 +306,8 @@ export async function POST(request: Request) {
           if (isComplimentaryGateEnabled() && !apiKey) {
             if (provider !== "openai") {
               const error = getComplimentaryProviderMismatchMessage();
+              const errorCode: GenerationErrorCode =
+                "COMPLIMENTARY_GATE_PROVIDER_MISMATCH";
               audit = withFailure(
                 {
                   ...audit,
@@ -314,6 +317,7 @@ export async function POST(request: Request) {
                 },
                 {
                   failureStage: "started",
+                  errorCode,
                   validationError: error,
                 },
               );
@@ -321,7 +325,7 @@ export async function POST(request: Request) {
                 status: "error",
                 session_id: audit.sessionId,
                 error,
-                error_code: "COMPLIMENTARY_GATE_PROVIDER_MISMATCH",
+                error_code: errorCode,
                 failure_stage: "started",
                 validation_error: error,
                 cost_summary: audit.finalCost ?? audit.estimatedCost,
@@ -332,6 +336,8 @@ export async function POST(request: Request) {
 
             if (!modelMatchesComplimentaryFamily(model)) {
               const error = getComplimentaryModelMismatchMessage();
+              const errorCode: GenerationErrorCode =
+                "COMPLIMENTARY_GATE_MODEL_MISMATCH";
               audit = withFailure(
                 {
                   ...audit,
@@ -341,6 +347,7 @@ export async function POST(request: Request) {
                 },
                 {
                   failureStage: "started",
+                  errorCode,
                   validationError: error,
                 },
               );
@@ -348,7 +355,7 @@ export async function POST(request: Request) {
                 status: "error",
                 session_id: audit.sessionId,
                 error,
-                error_code: "COMPLIMENTARY_GATE_MODEL_MISMATCH",
+                error_code: errorCode,
                 failure_stage: "started",
                 validation_error: error,
                 cost_summary: audit.finalCost ?? audit.estimatedCost,
@@ -441,22 +448,24 @@ export async function POST(request: Request) {
           send({
             status: "started",
             session_id: audit.sessionId,
-            message: "Starting generation process...",
+            message: "正在启动生成流程…",
             cost_summary: estimate.costSummary,
           });
 
           throwIfAborted(generationAbortController.signal);
           if (tokenCount >= HARD_GENERATION_INPUT_TOKEN_LIMIT) {
             const error = REPOSITORY_TOO_LARGE_ERROR;
+            const errorCode: GenerationErrorCode = "TOKEN_LIMIT_EXCEEDED";
             audit = withFailure(audit, {
               failureStage: "started",
+              errorCode,
               validationError: error,
             });
             queueTerminal({
               status: "error",
               session_id: audit.sessionId,
               error,
-              error_code: "TOKEN_LIMIT_EXCEEDED",
+              error_code: errorCode,
               validation_error: error,
               failure_stage: "started",
               cost_summary: audit.finalCost ?? audit.estimatedCost,
@@ -469,9 +478,7 @@ export async function POST(request: Request) {
             null;
           if (appliesComplimentaryGate) {
             if (estimate.graphRepairStaticInputTokens === null) {
-              throw new Error(
-                "Complimentary quota estimation is missing graph repair input.",
-              );
+              throw new Error("免费额度估算缺少图规划修复输入。");
             }
             complimentaryEstimate = {
               explanationInputTokens: estimate.explanationInputTokens,
@@ -490,6 +497,8 @@ export async function POST(request: Request) {
             if (!reservation.admitted) {
               const error =
                 reservation.message || getComplimentaryDenialMessage();
+              const errorCode: GenerationErrorCode =
+                "DAILY_FREE_TOKEN_LIMIT_REACHED";
               audit = withFailure(
                 {
                   ...audit,
@@ -498,6 +507,7 @@ export async function POST(request: Request) {
                 },
                 {
                   failureStage: "started",
+                  errorCode,
                   validationError: error,
                 },
               );
@@ -505,7 +515,7 @@ export async function POST(request: Request) {
                 status: "error",
                 session_id: audit.sessionId,
                 error,
-                error_code: "DAILY_FREE_TOKEN_LIMIT_REACHED",
+                error_code: errorCode,
                 failure_stage: "started",
                 validation_error: error,
                 quota_reset_at: reservation.quotaResetAt,
@@ -528,25 +538,21 @@ export async function POST(request: Request) {
           audit = withTimelineEvent(
             audit,
             "explanation_sent",
-            `Sending explanation request to ${model}...`,
+            `正在向 ${model} 发起分析请求…`,
           );
           send({
             status: "explanation_sent",
             session_id: audit.sessionId,
-            message: `Sending explanation request to ${analysisModel}...`,
+            message: `正在向 ${analysisModel} 发起分析请求…`,
           });
           throwIfAborted(generationAbortController.signal);
 
-          audit = withTimelineEvent(
-            audit,
-            "explanation",
-            "Analyzing repository structure...",
-          );
+          audit = withTimelineEvent(audit, "explanation", "正在分析仓库结构…");
           send({
             status: "explanation",
             session_id: audit.sessionId,
             source_file_count: sources.paths.length,
-            message: "Analyzing repository structure...",
+            message: "正在分析仓库结构…",
           });
 
           let explanationResponse = "";
@@ -582,7 +588,7 @@ export async function POST(request: Request) {
                     apiKey,
                   }),
                 },
-                note: "Includes estimated usage for a cancelled slow request; the provider did not return its token usage.",
+                note: "包含一次已取消的慢速请求的估算用量；服务商未返回其 token 用量。",
               });
               accounting.completedUnmeasuredTokenEstimate +=
                 interruptedCost.usage.totalTokens;
@@ -597,7 +603,7 @@ export async function POST(request: Request) {
               audit = withTimelineEvent(
                 audit,
                 "explanation",
-                "Retrying a slow model request...",
+                "正在重试较慢的模型请求…",
               );
               explanationResponse = "";
               streamedExplanationLength = 0;
@@ -606,7 +612,7 @@ export async function POST(request: Request) {
                 status: "explanation",
                 session_id: audit.sessionId,
                 explanation: "",
-                message: "Retrying a slow model request...",
+                message: "正在重试较慢的模型请求…",
               });
             },
             run: async (signal, attempt) => {
@@ -672,12 +678,12 @@ export async function POST(request: Request) {
                   audit = withTimelineEvent(
                     audit,
                     "graph",
-                    "Mapping repository architecture...",
+                    "正在梳理仓库架构…",
                   );
                   await send({
                     status: "graph",
                     session_id: audit.sessionId,
-                    message: "Mapping repository architecture...",
+                    message: "正在梳理仓库架构…",
                   });
                 }
               }
@@ -750,16 +756,17 @@ export async function POST(request: Request) {
           });
           audit = graphResult.audit;
           if (!graphResult.ok) {
+            const errorCode: GenerationErrorCode = "GRAPH_VALIDATION_FAILED";
             audit = withFailure(audit, {
               failureStage: "graph_validating",
+              errorCode,
               validationError: graphResult.validationError,
             });
             queueTerminal({
               status: "error",
               session_id: audit.sessionId,
-              error:
-                "Graph generation remained invalid after retry attempts. Please retry generation.",
-              error_code: "GRAPH_VALIDATION_FAILED",
+              error: "多次重试后图表结构仍未通过校验，请重新生成。",
+              error_code: errorCode,
               validation_error: graphResult.validationError,
               failure_stage: "graph_validating",
               cost_summary: audit.finalCost ?? audit.estimatedCost,
@@ -772,12 +779,12 @@ export async function POST(request: Request) {
           audit = withTimelineEvent(
             audit,
             "diagram_compiling",
-            "Compiling Mermaid diagram...",
+            "正在编译 Mermaid 图表…",
           );
           send({
             status: "diagram_compiling",
             session_id: audit.sessionId,
-            message: "Compiling Mermaid diagram...",
+            message: "正在编译 Mermaid 图表…",
             graph: validGraph,
             graph_attempts: audit.graphAttempts,
           });
@@ -796,7 +803,7 @@ export async function POST(request: Request) {
           send({
             status: "diagram_compiling",
             session_id: audit.sessionId,
-            message: "Compiled Mermaid diagram.",
+            message: "Mermaid 图表编译完成。",
             graph: validGraph,
             graph_attempts: audit.graphAttempts,
             diagram,
@@ -813,11 +820,7 @@ export async function POST(request: Request) {
           throwIfAborted(generationAbortController.signal);
           audit = withFinalCost(audit, finalCost);
           audit = withSuccess(
-            withTimelineEvent(
-              audit,
-              "complete",
-              "Diagram generation complete.",
-            ),
+            withTimelineEvent(audit, "complete", "图表生成完成。"),
           );
           successfulDiagramState = {
             stargazerCount: githubData.stargazerCount,
@@ -846,11 +849,15 @@ export async function POST(request: Request) {
           accounting.hasCompleteMeasuredUsage = false;
           const deadlineExceeded = abortCause === "deadline";
           const rawMessage = deadlineExceeded
-            ? "Generation timed out. Please retry."
+            ? "生成超时，请稍后重试。"
             : error instanceof Error
               ? error.message
-              : "Streaming generation failed.";
-          const normalized = deadlineExceeded
+              : "流式生成失败。";
+          const normalized: {
+            message: string;
+            errorCode: GenerationErrorCode;
+            upstreamProviderText?: boolean;
+          } = deadlineExceeded
             ? { message: rawMessage, errorCode: "GENERATION_TIMEOUT" }
             : normalizeGenerationError({
                 provider: audit.provider,
@@ -873,7 +880,9 @@ export async function POST(request: Request) {
           }
           audit = withFailure(audit, {
             failureStage: audit.stage || "started",
+            errorCode: normalized.errorCode,
             validationError: normalized.message,
+            upstreamProviderText: normalized.upstreamProviderText,
           });
           queueTerminal({
             status: "error",

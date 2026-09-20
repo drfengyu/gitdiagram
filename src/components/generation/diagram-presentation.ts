@@ -35,11 +35,7 @@ export function diagramPresentation(
   const hasGeneration = state.startedAt !== undefined || failed;
   const workVisible = hasGeneration && !ready;
   const opening = !presented && !hasGeneration;
-  const announcement = ready
-    ? "Diagram ready"
-    : opening
-      ? "Loading diagram"
-      : "";
+  const announcement = ready ? "图表已完成" : opening ? "正在加载图表" : "";
   const layers: Array<{ key: string; diagram: string }> = [];
   if (presented) layers.push(presented);
   if (pending && candidateKey && state.diagram)

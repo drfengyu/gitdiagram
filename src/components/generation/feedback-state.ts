@@ -3,17 +3,14 @@ import { githubAccessTitle } from "~/features/diagram/github-access";
 import { generationStep } from "./progress";
 
 function generationTitle(state: DiagramStreamState) {
-  if (state.status === "idle") return "Opening your diagram";
+  if (state.status === "idle") return "正在打开你的图表";
   if (state.status === "started")
-    return state.lastActivityAt
-      ? "Reading the repository"
-      : "Connecting to your repository";
-  if (generationStep(state.status) === 1)
-    return "Understanding the architecture";
-  if (state.status === "graph_retry") return "Refining the connections";
+    return state.lastActivityAt ? "正在读取仓库" : "正在连接你的仓库";
+  if (generationStep(state.status) === 1) return "正在理解架构";
+  if (state.status === "graph_retry") return "正在完善连接";
   if (state.status === "diagram_compiling" || state.status === "complete")
-    return "Drawing your diagram";
-  return "Mapping the connections";
+    return "正在绘制你的图表";
+  return "正在梳理连接";
 }
 
 export function feedbackState(
@@ -39,22 +36,21 @@ export function feedbackState(
       cancelled,
       quiet,
       title: cancelled
-        ? "Generation stopped"
+        ? "已停止生成"
         : renderFailed
-          ? "Couldn’t display the diagram"
-          : (githubAccessTitle(state.errorCode) ??
-            "Couldn’t generate the diagram"),
+          ? "无法显示图表"
+          : (githubAccessTitle(state.errorCode) ?? "无法生成图表"),
       description: cancelled ? "" : state.error,
     };
   return {
     failed,
     cancelled,
     quiet,
-    title: quiet ? "Waiting for an update" : generationTitle(state),
+    title: quiet ? "等待更新" : generationTitle(state),
     description: quiet
-      ? "No recent updates from the server."
+      ? "服务器暂无新进度。"
       : seconds >= 20 && state.lastActivityAt && !rendering
-        ? "Still working · receiving updates"
+        ? "仍在生成中 · 持续接收更新"
         : "",
   };
 }

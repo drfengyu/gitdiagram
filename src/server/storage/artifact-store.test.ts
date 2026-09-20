@@ -317,7 +317,7 @@ describe("toStoredSessionSummary", () => {
     expect(summary.validationError).not.toContain("org-abc123def");
     expect(summary.validationError).not.toContain("sk-proj");
     expect(summary.validationError).toBe(
-      "The AI provider returned an error while generating this diagram. Please retry.",
+      "AI 服务商在生成这张图表时返回了错误，请重试。",
     );
   });
 
@@ -336,6 +336,31 @@ describe("toStoredSessionSummary", () => {
     expect(toStoredSessionSummary(audit).validationError).toBe(
       "Graph validation failed after the maximum attempts.",
     );
+  });
+
+  it("carries the failure code so a later visitor gets the same call to action", () => {
+    const audit = {
+      ...createAudit({
+        sessionId: "session-coded-failure",
+        createdAt: "2026-07-13T12:00:00.000Z",
+        updatedAt: "2026-07-13T12:05:00.000Z",
+      }),
+      status: "failed" as const,
+      failureStage: "started",
+      errorCode: "REPOSITORY_NOT_FOUND" as const,
+    };
+
+    expect(toStoredSessionSummary(audit).errorCode).toBe(
+      "REPOSITORY_NOT_FOUND",
+    );
+    // A stored value outside the union (an older or hand-edited record) must not
+    // reach the client as a code the UI would then trust.
+    expect(
+      toStoredSessionSummary({
+        ...audit,
+        errorCode: "NOT_A_CODE" as never,
+      }).errorCode,
+    ).toBeUndefined();
   });
 });
 

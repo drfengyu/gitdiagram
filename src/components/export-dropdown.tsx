@@ -34,11 +34,11 @@ export function ExportDropdown({
               className="neo-button h-11 w-full px-3 text-sm sm:h-10 sm:w-auto sm:p-6 sm:px-6 sm:text-lg"
             >
               <ImageIcon className="h-6 w-6" />
-              <span className="text-sm">Download PNG</span>
+              <span className="text-sm">下载 PNG</span>
             </Button>
           </TooltipTrigger>
           <TooltipContent>
-            <p>Download diagram as high-quality PNG</p>
+            <p>将图表下载为高质量 PNG</p>
           </TooltipContent>
         </Tooltip>
         <CopyButton onClick={onCopy} />
@@ -47,14 +47,14 @@ export function ExportDropdown({
       {lastGenerated ? (
         <div className="flex items-center">
           <span className="text-xs text-gray-700 sm:text-sm dark:text-neutral-300">
-            Last generated: {lastGenerated.toLocaleString()}
+            上次生成：{lastGenerated.toLocaleString()}
           </span>
         </div>
       ) : null}
       {costSummary ? (
         <div className="flex items-center">
           <span className="text-xs text-gray-700 sm:text-sm dark:text-neutral-300">
-            {costSummary.kind === "actual" ? "Actual" : "Estimated"} cost:{" "}
+            {costSummary.kind === "actual" ? "实际" : "预估"} 成本：{" "}
             {costSummary.display}
           </span>
         </div>

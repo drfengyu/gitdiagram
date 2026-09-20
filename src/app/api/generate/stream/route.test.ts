@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { GitHubApiError } from "~/server/generate/github-errors";
+
 const mocks = vi.hoisted(() => ({
   after: vi.fn(),
   admitQuota: vi.fn(),
@@ -72,7 +74,7 @@ vi.mock("~/server/generate/cancellation", () => ({
 vi.mock("~/server/generate/github", () => ({
   getGithubData: mocks.getGithubData,
   REPOSITORY_TOO_LARGE_ERROR:
-    "Repository is too large (>195k tokens) for analysis. Try a smaller repo.",
+    "仓库过大(超过 195k tokens)，无法分析，请换小一些的仓库。",
 }));
 vi.mock("~/server/generate/model-config", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -225,7 +227,7 @@ describe("POST /api/generate/stream", () => {
     expect(response.status).toBe(429);
     expect(response.headers.get("retry-after")).toBe("900");
     expect(body.error_code).toBe("RATE_LIMITED");
-    expect(body.error).toContain("15 minutes");
+    expect(body.error).toContain("约 15 分钟");
     // Nothing downstream of the limiter may run: no GitHub fetch, no quota
     // reservation, no model call.
     expect(mocks.getGithubData).not.toHaveBeenCalled();
@@ -235,7 +237,9 @@ describe("POST /api/generate/stream", () => {
 
   it("refunds the rate-limit slot when the repository never resolved", async () => {
     mockEstimate(1_000);
-    mocks.getGithubData.mockRejectedValue(new Error("Repository not found."));
+    mocks.getGithubData.mockRejectedValue(
+      new GitHubApiError("repository_not_found", "Repository not found."),
+    );
 
     const response = await POST(
       request({}, { "x-forwarded-for": "203.0.113.7" }),
@@ -244,7 +248,7 @@ describe("POST /api/generate/stream", () => {
     await mocks.afterCallback?.();
 
     expect(body).toContain("REPOSITORY_NOT_FOUND");
-    expect(body).toContain("GitHub access");
+    expect(body).toContain("GitHub 访问");
     // The caller reached a model call for nothing, so the slot goes back.
     expect(mocks.refundRateLimit).toHaveBeenCalledWith({
       clientIp: "203.0.113.7",
@@ -732,7 +736,7 @@ describe("POST /api/generate/stream", () => {
     expect(terminal?.cost_summary).toMatchObject({
       kind: "estimate",
       approximate: true,
-      note: expect.stringContaining("remains an estimate"),
+      note: expect.stringContaining("次图规划尝试的估算值"),
     });
   });
 
@@ -1056,7 +1060,7 @@ describe("POST /api/generate/stream", () => {
         expect.objectContaining({
           status: "explanation",
           explanation: "",
-          message: "Retrying a slow model request...",
+          message: "正在重试较慢的模型请求…",
         }),
       );
       expect(events.find((event) => event.status === "complete")).toMatchObject(

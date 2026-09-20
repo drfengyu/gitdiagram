@@ -44,6 +44,6 @@ it("keeps cost visible when an old diagram has no saved date", () => {
       }}
     />,
   );
-  expect(screen.getByText("Actual cost: $0.0100 USD")).toBeVisible();
+  expect(screen.getByText("实际成本：$0.0100 USD")).toBeVisible();
   expect(document.querySelector("time")).toBeNull();
 });

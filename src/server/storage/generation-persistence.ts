@@ -53,7 +53,7 @@ export async function persistGenerationResult(params: {
     );
     params.recordTiming("persistence", persistenceStartedAt);
     return params.successfulDiagramState && params.audit.status === "succeeded"
-      ? "This private repository was read with GitDiagram's own GitHub access, so the diagram cannot be cached. Connect your own GitHub token to keep it."
+      ? "这次是用 GitDiagram 自己的 GitHub 权限读取的私有仓库，因此无法缓存图表。绑定你自己的 GitHub 令牌即可保留。"
       : undefined;
   }
 
@@ -180,7 +180,7 @@ export async function persistGenerationResult(params: {
       }),
     );
     if (params.successfulDiagramState && params.audit.status === "succeeded") {
-      return "The diagram was generated, but could not be cached. It may need to be regenerated after a refresh.";
+      return "图表已生成，但未能缓存。刷新页面后可能需要重新生成。";
     }
   } finally {
     params.recordTiming("persistence", persistenceStartedAt);

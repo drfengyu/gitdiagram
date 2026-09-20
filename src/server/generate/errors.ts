@@ -1,5 +1,5 @@
-import { REPOSITORY_TOO_LARGE_ERROR } from "./github";
-import { classifyGitHubError } from "./github-errors";
+import { classifyGitHubError, hasGitHubErrorCode } from "./github-errors";
+import type { GenerationErrorCode } from "~/features/diagram/error-codes";
 import {
   MODEL_PRICING_UNAVAILABLE_ERROR,
   ModelPricingUnavailableError,
@@ -36,35 +36,45 @@ export function rethrowAsUpstreamProviderError(error: unknown): never {
   }
 
   throw new UpstreamProviderError(
-    error instanceof Error ? error.message : "Model provider request failed.",
+    error instanceof Error ? error.message : "模型服务商请求失败。",
     { cause: error },
   );
 }
 
 const DEFAULT_OPENAI_KEY_QUOTA_EXHAUSTED_ERROR =
-  "GitDiagram's default OpenAI key is temporarily unavailable because its upstream API quota is exhausted. I'm a solo student engineer running this free and open source, so please try again later or use your own OpenAI API key.";
-const REDACTED_UPSTREAM_ERROR =
-  "The AI provider returned an error while generating this diagram. Please retry.";
+  "GitDiagram 默认的 OpenAI 密钥上游配额已用完，暂时不可用。这是一个免费开源项目，由一名在校学生独立维护，请稍后重试，或使用你自己的 OpenAI API Key。";
+const REDACTED_UPSTREAM_ERROR = "AI 服务商在生成这张图表时返回了错误，请重试。";
 
 /**
  * Prefixed onto raw provider text shown to a caller who supplied their own API
  * key. Provider bodies can echo a masked key prefix/suffix or an organization
  * id, so while the caller may see their own account's error live over SSE, the
  * same message is also persisted into a shared failure record that later
- * visitors read. The prefix marks the message as raw provider text so
- * `redactUpstreamProviderTextForSharedRecord` can strip it at the persistence
- * boundary without a side channel.
+ * visitors read.
+ *
+ * New writes carry an explicit `upstreamProviderText` flag on the audit instead
+ * of relying on this prefix; the prefix check below remains as the reader for
+ * records written before the flag existed, so its literal must not change.
  */
 export const BYOK_UPSTREAM_ERROR_PREFIX = "Your AI provider key hit an error: ";
 
+/** Display prefix for new BYOK failures; redaction uses the audit flag. */
+export const BYOK_UPSTREAM_ERROR_DISPLAY_PREFIX =
+  "你的 AI 服务商密钥出现错误：";
+
 /**
- * Replaces raw provider text (marked by `BYOK_UPSTREAM_ERROR_PREFIX`) with the
- * generic upstream error before an audit is written to shared storage.
- * App-authored messages pass through untouched.
+ * Strips raw provider text down to a generic message before an audit is written
+ * to shared storage. App-authored messages pass through untouched.
  */
 export function redactUpstreamProviderTextForSharedRecord(
   message: string | undefined,
+  upstreamProviderText?: boolean,
 ): string | undefined {
+  if (upstreamProviderText) {
+    return REDACTED_UPSTREAM_ERROR;
+  }
+  // Legacy records carry no flag and are identified by the prefix alone, so
+  // that literal has to stay stable regardless of display copy.
   if (message?.startsWith(BYOK_UPSTREAM_ERROR_PREFIX)) {
     return REDACTED_UPSTREAM_ERROR;
   }
@@ -90,7 +100,11 @@ export function normalizeGenerationError(params: {
   githubPat?: string;
   message: string;
   error?: unknown;
-}): { message: string; errorCode: string } {
+}): {
+  message: string;
+  errorCode: GenerationErrorCode;
+  upstreamProviderText?: boolean;
+} {
   const githubError = classifyGitHubError(
     params.error,
     Boolean(params.githubPat?.trim()),
@@ -104,7 +118,7 @@ export function normalizeGenerationError(params: {
     };
   }
 
-  if (params.message === REPOSITORY_TOO_LARGE_ERROR) {
+  if (hasGitHubErrorCode(params.error, "repository_too_large")) {
     return {
       message: params.message,
       errorCode: "TOKEN_LIMIT_EXCEEDED",
@@ -127,8 +141,8 @@ export function normalizeGenerationError(params: {
   // message is both streamed to the client and persisted into the public
   // session audit, where later visitors read it. A caller using their own key
   // is shown their own account's error, which they need to act on — but the
-  // message is tagged with `BYOK_UPSTREAM_ERROR_PREFIX` so the persistence
-  // boundary keeps the raw provider text out of the shared failure record.
+  // audit is tagged `upstreamProviderText` so the persistence boundary keeps
+  // the raw provider text out of the shared failure record.
   if (params.error instanceof UpstreamProviderError) {
     if (!params.apiKey?.trim()) {
       return {
@@ -137,8 +151,9 @@ export function normalizeGenerationError(params: {
       };
     }
     return {
-      message: `${BYOK_UPSTREAM_ERROR_PREFIX}${params.message}`,
-      errorCode: "STREAM_FAILED",
+      message: `${BYOK_UPSTREAM_ERROR_DISPLAY_PREFIX}${params.message}`,
+      errorCode: "CALLER_KEY_ERROR",
+      upstreamProviderText: true,
     };
   }
 

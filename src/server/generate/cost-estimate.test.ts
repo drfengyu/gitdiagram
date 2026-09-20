@@ -125,7 +125,7 @@ describe("estimateGenerationCost", () => {
     });
 
     expect(result.costSummary.note).toContain(
-      "Some input tokens were approximated",
+      "部分输入 token 用量由本地保守估算得出",
     );
   });
 

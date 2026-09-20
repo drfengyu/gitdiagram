@@ -156,14 +156,14 @@ export function getGenerationRateLimitMessage(
   retryAfterSeconds: number,
 ): string {
   const minutes = Math.max(Math.ceil(retryAfterSeconds / 60), 1);
-  return `Too many free generations from this network. I'm a solo student engineer running this free and open source, so please try again in about ${minutes} minute${minutes === 1 ? "" : "s"} or use your own API key.`;
+  return `本网络的免费生成次数已用完。这是一个免费开源项目，由一名在校学生独立维护，请在约 ${minutes} 分钟后重试，或使用你自己的 API Key。`;
 }
 
 export function getGenerationInfrastructureRateLimitMessage(
   retryAfterSeconds: number,
 ): string {
   const minutes = Math.max(Math.ceil(retryAfterSeconds / 60), 1);
-  return `Too many repository analysis requests from this network. Please try again in about ${minutes} minute${minutes === 1 ? "" : "s"}.`;
+  return `本网络分析仓库的请求过于频繁，请在约 ${minutes} 分钟后重试。`;
 }
 
 export interface GenerationRateLimitResult {

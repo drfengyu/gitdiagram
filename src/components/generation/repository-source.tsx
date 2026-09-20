@@ -34,14 +34,14 @@ export function RepositorySource({
             ref={stopRef}
             type="button"
             className={styles.stop}
-            aria-label="Stop generation"
+            aria-label="停止生成"
             onClick={onCancel}
           >
             <Square size={12} fill="currentColor" aria-hidden="true" />
           </button>
         ) : (
           <button type="button" className={styles.primary} onClick={onRetry}>
-            Try again <ArrowUpRight size={15} aria-hidden="true" />
+            重试 <ArrowUpRight size={15} aria-hidden="true" />
           </button>
         )}
       </div>

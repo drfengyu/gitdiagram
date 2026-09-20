@@ -50,28 +50,28 @@ export function CopyButton({ onClick }: CopyButtonProps) {
           onClick={handleClick}
           aria-label={
             copied
-              ? "Mermaid code copied"
+              ? "已复制 Mermaid 代码"
               : copyFailed
-                ? "Copy failed"
-                : "Copy Mermaid.js code"
+                ? "复制失败"
+                : "复制 Mermaid.js 代码"
           }
           className="neo-button h-11 w-full px-3 text-sm sm:h-10 sm:w-auto sm:p-6 sm:px-6 sm:text-lg"
         >
           <span className="copy-button-content" aria-hidden="true">
             <span className="copy-button-state" data-active={!copied}>
               <FileText className="h-6 w-6" />
-              <span className="text-sm">Copy Mermaid.js Code</span>
+              <span className="text-sm">复制 Mermaid.js 代码</span>
             </span>
             <span className="copy-button-state" data-active={copied}>
               <Check className="h-6 w-6" />
-              <span className="text-sm">Copied!</span>
+              <span className="text-sm">已复制！</span>
             </span>
           </span>
           <span className="sr-only" aria-live="polite">
             {copied
-              ? "Mermaid code copied to clipboard"
+              ? "Mermaid 代码已复制到剪贴板"
               : copyFailed
-                ? "Could not copy Mermaid code"
+                ? "无法复制 Mermaid 代码"
                 : ""}
           </span>
         </Button>
@@ -79,10 +79,10 @@ export function CopyButton({ onClick }: CopyButtonProps) {
       <TooltipContent>
         <p>
           {copied
-            ? "Copied!"
+            ? "已复制！"
             : copyFailed
-              ? "Copy failed"
-              : "Copy the internal Mermaid.js code needed to generate the diagram"}
+              ? "复制失败"
+              : "复制生成图表所需的内部 Mermaid.js 代码"}
         </p>
       </TooltipContent>
     </Tooltip>

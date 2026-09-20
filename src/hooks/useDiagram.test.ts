@@ -495,9 +495,7 @@ describe("useDiagram", () => {
       await result.current.handleRegenerate();
     });
 
-    expect(result.current.error).toBe(
-      "Something went wrong. Please try again later.",
-    );
+    expect(result.current.error).toBe("生成失败，请稍后重试。");
   });
 
   it("surfaces browser render failures without mutating shared state", async () => {
@@ -506,9 +504,7 @@ describe("useDiagram", () => {
     await waitFor(() => expect(result.current.loading).toBe(false));
 
     result.current.handleDiagramRenderError("Parse error on line 3");
-    await waitFor(() =>
-      expect(result.current.error).toContain("Diagram render failed"),
-    );
+    await waitFor(() => expect(result.current.error).toContain("图表渲染失败"));
   });
   it("stopping a pending cache lookup prevents a paid generation from starting", async () => {
     const pending = createDeferred<{

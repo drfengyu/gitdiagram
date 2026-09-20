@@ -86,7 +86,7 @@ describe("POST /api/generate/cancel", () => {
     expect(crossOriginResponse.status).toBe(403);
     await expect(crossOriginResponse.json()).resolves.toEqual({
       ok: false,
-      error: "Cross-origin cancellation is not allowed.",
+      error: "不允许跨域取消。",
     });
     await expect(
       POST(request({ session_id: "not-a-uuid", cancel_token: cancelToken })),
@@ -113,7 +113,7 @@ describe("POST /api/generate/cancel", () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
       ok: false,
-      error: "Cancellation is temporarily unavailable.",
+      error: "取消服务暂时不可用。",
     });
   });
 });

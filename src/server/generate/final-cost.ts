@@ -76,6 +76,6 @@ export function createFinalGenerationCostSummary(params: {
         approximate: true,
       }),
     ],
-    `Provider usage was unavailable for at least one stage, so this remains an estimate for ${graphAttemptCount} graph-planning attempt${graphAttemptCount === 1 ? "" : "s"}.`,
+    `至少一个阶段未取得服务商的真实用量，因此这仍是 ${graphAttemptCount} 次图规划尝试的估算值。`,
   );
 }

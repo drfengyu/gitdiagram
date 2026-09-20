@@ -27,7 +27,7 @@ export function SponsorEmailActions({
     <div className={styles.contactActions}>
       <a href={mailto} className={`neo-button ${styles.contactPrimary}`}>
         <Mail aria-hidden="true" />
-        Email Ahmed
+        发邮件给 Ahmed
       </a>
       <button
         type="button"
@@ -35,7 +35,7 @@ export function SponsorEmailActions({
         className={`browse-muted-button ${styles.contactCopy}`}
       >
         {copied ? <Check aria-hidden="true" /> : <Copy aria-hidden="true" />}
-        <span aria-live="polite">{copied ? "Copied email" : "Copy email"}</span>
+        <span aria-live="polite">{copied ? "已复制邮箱" : "复制邮箱"}</span>
       </button>
     </div>
   );

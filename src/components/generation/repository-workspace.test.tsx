@@ -69,28 +69,28 @@ describe("repository generation workspace", () => {
     expect(
       screen.getByRole("heading", { name: "acme/demo", level: 1 }),
     ).toBeVisible();
-    expect(screen.getByRole("button", { name: "Export" })).toBeDisabled();
-    expect(screen.queryByText("Drawing your diagram")).not.toBeInTheDocument();
-    expect(screen.queryByText("12 source files read")).not.toBeInTheDocument();
-    expect(screen.getByRole("status")).toHaveTextContent("Loading diagram");
+    expect(screen.getByRole("button", { name: "导出" })).toBeDisabled();
+    expect(screen.queryByText("正在绘制你的图表")).not.toBeInTheDocument();
+    expect(screen.queryByText("已读取 12 个源文件")).not.toBeInTheDocument();
+    expect(screen.getByRole("status")).toHaveTextContent("正在加载图表");
     expect(screen.getByRole("status")).toHaveClass("sr-only");
-    expect(screen.queryByText("Loading diagram…")).not.toBeInTheDocument();
+    expect(screen.queryByText("正在加载图表…")).not.toBeInTheDocument();
     expect(renders.get("old")?.zoomingEnabled).toBe(false);
     finish("old");
-    expect(screen.getByRole("button", { name: "Export" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "导出" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("heading", { name: "Drawing your diagram" }),
+      screen.queryByRole("heading", { name: "正在绘制你的图表" }),
     ).not.toBeInTheDocument();
-    const activity = screen.getByRole("button", { name: "Activity" });
+    const activity = screen.getByRole("button", { name: "活动" });
     expect(activity).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(activity);
     expect(activity).toHaveAttribute("aria-expanded", "true");
     expect(
       document.getElementById(activity.getAttribute("aria-controls")!),
-    ).toHaveTextContent("12 source files read");
-    fireEvent.click(screen.getByRole("button", { name: "Enable zoom" }));
+    ).toHaveTextContent("已读取 12 个源文件");
+    fireEvent.click(screen.getByRole("button", { name: "开启缩放" }));
     expect(renders.get("old")?.zoomingEnabled).toBe(true);
-    fireEvent.click(screen.getByRole("button", { name: "Exit zoom" }));
+    fireEvent.click(screen.getByRole("button", { name: "退出缩放" }));
     expect(renders.get("old")?.zoomingEnabled).toBe(false);
   });
   it("keeps saved generation time and cost in Activity, including after a cancelled replacement", () => {
@@ -110,26 +110,24 @@ describe("repository generation workspace", () => {
         state={{ ...cached, costSummary: cost }}
       />,
     );
-    expect(
-      screen.queryByText("Actual cost: $0.0076 USD"),
-    ).not.toBeInTheDocument();
+    expect(screen.queryByText("实际成本：$0.0076 USD")).not.toBeInTheDocument();
     finish("old");
     expect(
-      screen.queryByRole("region", { name: "Generation activity" }),
+      screen.queryByRole("region", { name: "生成活动" }),
     ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Activity" }));
-    expect(
-      screen.getByRole("region", { name: "Generation activity" }),
-    ).toHaveTextContent("Actual cost: $0.0076 USD");
+    fireEvent.click(screen.getByRole("button", { name: "活动" }));
+    expect(screen.getByRole("region", { name: "生成活动" })).toHaveTextContent(
+      "实际成本：$0.0076 USD",
+    );
     expect(document.querySelector("time")).toHaveAttribute(
       "dateTime",
       savedAt.toISOString(),
     );
-    expect(screen.getByRole("button", { name: "Activity" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "活动" })).toHaveAttribute(
       "aria-expanded",
       "true",
     );
-    expect(screen.getByText("Actual cost: $0.0076 USD")).toBeVisible();
+    expect(screen.getByText("实际成本：$0.0076 USD")).toBeVisible();
     rerender(
       <RepositoryWorkspace
         {...props}
@@ -141,19 +139,17 @@ describe("repository generation workspace", () => {
         }}
       />,
     );
-    expect(screen.getByText("Actual cost: $0.0076 USD")).toBeVisible();
-    expect(
-      screen.queryByText("Actual cost: $0.9999 USD"),
-    ).not.toBeInTheDocument();
+    expect(screen.getByText("实际成本：$0.0076 USD")).toBeVisible();
+    expect(screen.queryByText("实际成本：$0.9999 USD")).not.toBeInTheDocument();
   });
   it("uses a quiet loading state during a repository lookup", () => {
     render(
       <RepositoryWorkspace {...props} loading state={{ status: "idle" }} />,
     );
-    expect(screen.getByRole("status")).toHaveTextContent("Loading diagram");
+    expect(screen.getByRole("status")).toHaveTextContent("正在加载图表");
     expect(screen.queryByRole("heading", { level: 2 })).not.toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Activity" }),
+      screen.queryByRole("button", { name: "活动" }),
     ).not.toBeInTheDocument();
   });
   it("presents the repository as a direct link without an edit control", () => {
@@ -173,8 +169,8 @@ describe("repository generation workspace", () => {
       <RepositoryWorkspace {...props} state={cached} />,
     );
     finish("old");
-    screen.getByRole("button", { name: "Regenerate" }).focus();
-    fireEvent.click(screen.getByRole("button", { name: "Regenerate" }));
+    screen.getByRole("button", { name: "重新生成" }).focus();
+    fireEvent.click(screen.getByRole("button", { name: "重新生成" }));
     expect(props.onRegenerate).toHaveBeenCalledOnce();
     rerender(
       <RepositoryWorkspace
@@ -184,14 +180,12 @@ describe("repository generation workspace", () => {
       />,
     );
     visible("old");
+    expect(screen.getByRole("button", { name: "停止生成" })).toHaveFocus();
     expect(
-      screen.getByRole("button", { name: "Stop generation" }),
-    ).toHaveFocus();
-    expect(
-      screen.getByRole("button", { name: "Stop generation" }),
+      screen.getByRole("button", { name: "停止生成" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "Export" }),
+      screen.queryByRole("button", { name: "导出" }),
     ).not.toBeInTheDocument();
     rerender(
       <RepositoryWorkspace
@@ -205,7 +199,7 @@ describe("repository generation workspace", () => {
     );
     finish("new");
     visible("new");
-    expect(screen.getByRole("button", { name: "Regenerate" })).toHaveFocus();
+    expect(screen.getByRole("button", { name: "重新生成" })).toHaveFocus();
     expect(screen.queryByTestId("chart-old")).not.toBeInTheDocument();
   });
   it("requires a fresh render for identical output from another run", () => {
@@ -217,14 +211,14 @@ describe("repository generation workspace", () => {
       <RepositoryWorkspace {...props} state={{ ...cached, startedAt: 20 }} />,
     );
     expect(
-      screen.getByRole("heading", { name: "Drawing your diagram" }),
+      screen.getByRole("heading", { name: "正在绘制你的图表" }),
     ).toBeInTheDocument();
     expect(screen.getAllByTestId("chart-old")).toHaveLength(2);
     finish("old");
     expect(screen.getAllByTestId("chart-old")).toHaveLength(1);
-    expect(screen.getByRole("status")).toHaveTextContent("Diagram ready");
+    expect(screen.getByRole("status")).toHaveTextContent("图表已完成");
   });
-  it.each(["GENERATION_CANCELLED", "STREAM_FAILED"])(
+  it.each(["GENERATION_CANCELLED", "STREAM_FAILED"] as const)(
     "retains the previous diagram after %s",
     (errorCode) => {
       const { rerender } = render(
@@ -238,7 +232,7 @@ describe("repository generation workspace", () => {
           state={{ status: "started", startedAt: 20 }}
         />,
       );
-      fireEvent.click(screen.getByRole("button", { name: "Stop generation" }));
+      fireEvent.click(screen.getByRole("button", { name: "停止生成" }));
       expect(props.onCancel).toHaveBeenCalledOnce();
       rerender(
         <RepositoryWorkspace
@@ -252,11 +246,9 @@ describe("repository generation workspace", () => {
         />,
       );
       visible("old");
+      expect(screen.getByRole("button", { name: "导出" })).toBeInTheDocument();
       expect(
-        screen.getByRole("button", { name: "Export" }),
-      ).toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "Regenerate" }),
+        screen.getByRole("button", { name: "重新生成" }),
       ).toBeInTheDocument();
     },
   );
@@ -274,9 +266,7 @@ describe("repository generation workspace", () => {
     act(() => renders.get("broken")?.onRenderError?.("Invalid graph"));
     visible("old");
     expect(screen.queryByTestId("chart-broken")).not.toBeInTheDocument();
-    expect(screen.getByRole("alert")).toHaveTextContent(
-      "Couldn’t display the diagram",
-    );
+    expect(screen.getByRole("alert")).toHaveTextContent("无法显示图表");
     expect(props.onRenderError).toHaveBeenCalledWith("Invalid graph");
   });
   it("distinguishes a healthy long wait from a connection without updates", () => {
@@ -293,9 +283,7 @@ describe("repository generation workspace", () => {
         }}
       />,
     );
-    expect(
-      screen.getByText("Still working · receiving updates"),
-    ).toBeInTheDocument();
+    expect(screen.getByText("仍在生成中 · 持续接收更新")).toBeInTheDocument();
     rerender(
       <RepositoryWorkspace
         {...props}
@@ -308,26 +296,26 @@ describe("repository generation workspace", () => {
       />,
     );
     expect(
-      screen.getByRole("heading", { name: "Waiting for an update" }),
+      screen.getByRole("heading", { name: "等待更新" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByText("Still working · receiving updates"),
+      screen.queryByText("仍在生成中 · 持续接收更新"),
     ).not.toBeInTheDocument();
   });
   it("opens export with keyboard-accessible actions and restores focus on Escape", () => {
     render(<RepositoryWorkspace {...props} state={cached} />);
     finish("old");
-    const trigger = screen.getByRole("button", { name: "Export" });
+    const trigger = screen.getByRole("button", { name: "导出" });
     fireEvent.click(trigger);
     expect(
-      screen.getByRole("button", { name: "Download PNG" }),
+      screen.getByRole("button", { name: "下载 PNG" }),
     ).toBeInTheDocument();
     expect(
-      screen.getByRole("button", { name: "Copy Mermaid" }),
+      screen.getByRole("button", { name: "复制 Mermaid" }),
     ).toBeInTheDocument();
     fireEvent.keyDown(document, { key: "Escape" });
     expect(
-      screen.queryByRole("button", { name: "Download PNG" }),
+      screen.queryByRole("button", { name: "下载 PNG" }),
     ).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
   });
@@ -336,6 +324,6 @@ describe("repository generation workspace", () => {
       <RepositoryWorkspace {...props} regenerateDisabled state={cached} />,
     );
     finish("old");
-    expect(screen.getByRole("button", { name: "Regenerate" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "重新生成" })).toBeDisabled();
   });
 });

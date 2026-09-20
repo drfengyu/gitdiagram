@@ -32,7 +32,7 @@ interface MermaidChartProps {
 const INTERACTIVE_FIT_PADDING = 24;
 const PREVIEW_FIT_PADDING = 16;
 const INTERACTIVE_VIEWER_PROPS = {
-  "aria-label": "Interactive diagram viewer",
+  "aria-label": "交互式图表查看器",
   role: "region",
   tabIndex: 0,
 };
@@ -196,10 +196,8 @@ const MermaidChart = ({
         if (cancelled) return;
         console.error("Mermaid render failed:", error);
         const message =
-          error instanceof Error
-            ? error.message
-            : "Unknown Mermaid render error.";
-        setRenderMessage(`Mermaid render failed: ${message}`);
+          error instanceof Error ? error.message : "未知 Mermaid 渲染错误。";
+        setRenderMessage(`Mermaid 渲染失败：${message}`);
         const reportKey = `${chart}::${message}`;
         if (reportedRenderErrorRef.current !== reportKey) {
           reportedRenderErrorRef.current = reportKey;

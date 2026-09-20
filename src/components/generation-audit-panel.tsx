@@ -40,19 +40,15 @@ export function GenerationAuditPanel({
   return (
     <div className="w-full max-w-5xl rounded-xl border border-neutral-300 bg-white/80 p-4 text-sm text-neutral-800 shadow-sm dark:border-neutral-700 dark:bg-neutral-950/60 dark:text-neutral-100">
       <p className="font-semibold" role={error ? "alert" : undefined}>
-        {audit?.status === "failed"
-          ? "We couldn't generate this diagram"
-          : "Generation details"}
+        {audit?.status === "failed" ? "无法生成该图表" : "生成详情"}
       </p>
       {error && <p className="mt-2 text-red-700 dark:text-red-300">{error}</p>}
       {audit && (
         <details className="mt-4 text-left">
-          <summary className="neo-link cursor-pointer">
-            Technical details
-          </summary>
+          <summary className="neo-link cursor-pointer">技术细节</summary>
           {audit?.failureStage && (
             <p className="mt-2 text-xs tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
-              Failure stage: {audit.failureStage}
+              失败阶段：{audit.failureStage}
             </p>
           )}
           {diagnosticMessage && (
@@ -60,11 +56,11 @@ export function GenerationAuditPanel({
               {diagnosticMessage}
             </pre>
           )}
-          {renderCostSummary("Estimated cost", audit?.estimatedCost)}
-          {renderCostSummary("Final cost", audit?.finalCost)}
+          {renderCostSummary("预估成本", audit?.estimatedCost)}
+          {renderCostSummary("最终成本", audit?.finalCost)}
           {audit?.stageUsages?.length ? (
             <div className="mt-4 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
-              <p className="font-medium">Stage usage</p>
+              <p className="font-medium">阶段用量</p>
               <pre className="mt-2 overflow-x-auto text-xs whitespace-pre-wrap">
                 {JSON.stringify(audit.stageUsages, null, 2)}
               </pre>
@@ -72,7 +68,7 @@ export function GenerationAuditPanel({
           ) : null}
           {audit?.graphAttempts?.length ? (
             <div className="mt-4 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
-              <p className="font-medium">Graph attempts</p>
+              <p className="font-medium">图生成尝试</p>
               <pre className="mt-2 overflow-x-auto text-xs whitespace-pre-wrap">
                 {JSON.stringify(audit.graphAttempts, null, 2)}
               </pre>
@@ -80,7 +76,7 @@ export function GenerationAuditPanel({
           ) : null}
           {audit?.graph ? (
             <div className="mt-4 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
-              <p className="font-medium">Graph JSON</p>
+              <p className="font-medium">图 JSON</p>
               <pre className="mt-2 overflow-x-auto text-xs whitespace-pre-wrap">
                 {JSON.stringify(audit.graph, null, 2)}
               </pre>
@@ -88,7 +84,7 @@ export function GenerationAuditPanel({
           ) : null}
           {audit?.compiledDiagram ? (
             <div className="mt-4 rounded-md border border-neutral-200 p-3 dark:border-neutral-800">
-              <p className="font-medium">Compiled Mermaid</p>
+              <p className="font-medium">编译后的 Mermaid</p>
               <pre className="mt-2 overflow-x-auto text-xs whitespace-pre-wrap">
                 {audit.compiledDiagram}
               </pre>

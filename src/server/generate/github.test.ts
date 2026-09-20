@@ -326,7 +326,7 @@ describe("getGithubData repository input bounds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getGithubData("acme", "demo")).rejects.toThrow(
-      "A GitHub token is required to analyze a private repository.",
+      "分析私有仓库需要 GitHub 令牌。",
     );
     expect(fetchMock).toHaveBeenCalledOnce();
     expect(fetchMock).toHaveBeenCalledWith(
@@ -395,7 +395,7 @@ describe("getGithubData repository input bounds", () => {
     vi.stubGlobal("fetch", fetchMock);
 
     await expect(getGithubData("acme", "empty")).rejects.toThrow(
-      "Could not fetch repository file tree. Repository might be empty or inaccessible.",
+      "无法获取仓库文件树，仓库可能为空或不可访问。",
     );
   });
 
@@ -411,7 +411,7 @@ describe("getGithubData repository input bounds", () => {
     // The repo metadata request fails first; only the tree endpoint maps 409
     // to the empty-repository message.
     await expect(getGithubData("acme", "demo")).rejects.toThrow(
-      "GitHub request failed (409). Please retry.",
+      "GitHub 请求失败(409)，请重试。",
     );
     errorSpy.mockRestore();
   });
@@ -466,7 +466,7 @@ describe("getGithubData repository input bounds", () => {
     // The message reaches the client and the persisted public audit, so it may
     // carry the status but never the body describing the server's credential.
     await expect(getGithubData("acme", "demo")).rejects.toThrow(
-      "GitHub request failed (403). Please retry.",
+      "GitHub 请求失败(403)，请重试。",
     );
     const thrown = await getGithubData("acme", "demo").catch(
       (error: Error) => error.message,
@@ -514,7 +514,7 @@ describe("getGithubData repository input bounds", () => {
     vi.stubGlobal("fetch", fetchMock);
     await expect(
       getGithubData("acme", "secret", "expired-test-token"),
-    ).rejects.toThrow("GitHub request failed (401)");
+    ).rejects.toThrow("GitHub 请求失败(401)");
     expect(fetchMock).toHaveBeenCalledTimes(2);
     expect(
       fetchMock.mock.calls.every(

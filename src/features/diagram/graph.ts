@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { GenerationErrorCode } from "~/features/diagram/error-codes";
 import type {
   GenerationCostSummary,
   GenerationStageUsage,
@@ -135,6 +136,19 @@ export interface GenerationSessionAudit {
   stageUsages: GenerationStageUsage[];
   compiledDiagram?: string;
   validationError?: string;
+  /**
+   * Stable classification of the failure, kept beside the human-readable
+   * message so a later visitor still gets the right call to action whatever the
+   * message says. Absent on records written before it existed.
+   */
+  errorCode?: GenerationErrorCode;
+  /**
+   * Marks `validationError` as raw upstream provider text. The caller who
+   * supplied the key may see it live, but anything written to shared storage
+   * must redact it. Flagged rather than detected from the message so the
+   * display text stays free to change.
+   */
+  upstreamProviderText?: boolean;
   failureStage?: string;
   compilerError?: string;
   renderError?: string;

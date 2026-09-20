@@ -60,15 +60,15 @@ export const ArchitectureNotes = memo(function ArchitectureNotes({
       <button
         type="button"
         className={styles.notesToggle}
-        aria-label="Architecture overview"
+        aria-label="架构概览"
         aria-expanded={expanded}
         aria-controls={id}
         onClick={() => setExpanded((value) => !value)}
       >
         <FileText size={15} aria-hidden="true" />
-        <span>Architecture overview</span>
+        <span>架构概览</span>
         <span className={styles.notesState}>
-          {text ? (streaming ? "Live" : "Read") : "Up next"}
+          {text ? (streaming ? "实时" : "完成") : "即将更新"}
         </span>
         <ChevronDown size={15} className={styles.chevron} aria-hidden="true" />
       </button>
@@ -79,7 +79,7 @@ export const ArchitectureNotes = memo(function ArchitectureNotes({
             className={styles.notesBody}
             data-testid="generation-stream"
             role="region"
-            aria-label="Architecture overview"
+            aria-label="架构概览"
             tabIndex={text ? 0 : -1}
             onScroll={(event) => {
               const pane = event.currentTarget;
@@ -113,9 +113,7 @@ export const ArchitectureNotes = memo(function ArchitectureNotes({
               </div>
             ) : (
               <div className={styles.notesEmpty}>
-                <p>
-                  A live overview will appear here as we analyze the repository.
-                </p>
+                <p>解析仓库时，这里会显示实时概览。</p>
               </div>
             )}
           </div>
@@ -131,7 +129,7 @@ export const ArchitectureNotes = memo(function ArchitectureNotes({
                 paneRef.current.scrollTop = paneRef.current.scrollHeight;
             }}
           >
-            <ArrowDown size={13} aria-hidden="true" /> Follow latest
+            <ArrowDown size={13} aria-hidden="true" /> 跟随最新
           </button>
         )}
       </div>

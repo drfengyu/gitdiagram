@@ -10,10 +10,10 @@ export function useStarReminder() {
 
     if (!hasShownStarReminder) {
       const timeoutId = setTimeout(() => {
-        toast("Enjoying GitDiagram?", {
+        toast("喜欢 GitDiagram 吗？", {
           className: "star-reminder-toast",
           action: {
-            label: "Star ★",
+            label: "给个 Star ★",
             onClick: () => window.open(GITHUB_REPO_URL, "_blank"),
           },
           duration: 5000,

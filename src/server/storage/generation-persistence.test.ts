@@ -85,7 +85,7 @@ describe("persistGenerationResult", () => {
 
     expect(mocks.saveSuccessfulDiagramState).not.toHaveBeenCalled();
     expect(mocks.persistTerminalSessionAudit).not.toHaveBeenCalled();
-    expect(warning).toMatch(/cannot be cached/u);
+    expect(warning).toMatch(/无法缓存/u);
   });
 
   it("persists a private repository when the caller supplied a token", async () => {

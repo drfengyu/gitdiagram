@@ -55,7 +55,7 @@ const MODEL_PRICING: Record<string, ModelPricing> = {
   "o4-mini": { inputPerMillionUsd: 1.1, outputPerMillionUsd: 4.4 },
 };
 export const MODEL_PRICING_UNAVAILABLE_ERROR =
-  "Cost information is unavailable for the configured AI model.";
+  "当前配置的 AI 模型暂无成本信息。";
 
 export class ModelPricingUnavailableError extends Error {
   constructor() {
@@ -306,7 +306,7 @@ export function createEstimateCostSummary(params: {
           ]),
     ],
     params.note ??
-      "Estimate assumes one graph-planning attempt, uncached writes and the estimated output usage; actual usage may be higher.",
+      "估算按一次图规划尝试、未命中缓存的写入以及预估的输出用量计算，实际用量可能更高。",
   );
 }
 

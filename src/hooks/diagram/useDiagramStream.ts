@@ -201,7 +201,7 @@ export function useDiagramStream({
     setState({
       status: "started",
       startedAt: Date.now(),
-      message: "Starting generation process...",
+      message: "正在启动生成流程…",
       costSummary: undefined,
     });
     const buffers = {
@@ -253,8 +253,7 @@ export function useDiagramStream({
       ...prev,
       status: "error",
       errorCode: "GENERATION_CANCELLED",
-      error:
-        "You stopped this generation. You can start again whenever you’re ready.",
+      error: "你已停止本次生成，随时可以重新开始。",
     }));
   }, []);
 

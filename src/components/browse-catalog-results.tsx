@@ -77,14 +77,14 @@ export function BrowseCatalogResults({
     <>
       <div className="flex items-center justify-between">
         <p className="text-sm text-[hsl(var(--neo-soft-text))] dark:text-neutral-300">
-          {showingStart}–{showingEnd} of{" "}
-          {totalCountFormatter.format(result.total)} public diagrams
+          第 {showingStart}–{showingEnd} 个，共{" "}
+          {totalCountFormatter.format(result.total)} 个公开图表
         </p>
       </div>
 
       <div className="neo-panel overflow-hidden rounded-lg">
         <table className="block w-full border-collapse lg:table lg:table-fixed">
-          <caption className="sr-only">Public repository diagrams</caption>
+          <caption className="sr-only">公开仓库图表</caption>
           <colgroup className="hidden lg:table-column-group">
             <col />
             <col className="w-[104px]" />
@@ -93,15 +93,15 @@ export function BrowseCatalogResults({
           </colgroup>
           <thead className="hidden lg:table-header-group">
             <tr className="border-b-[3px] border-black bg-[hsl(var(--neo-panel-muted))] text-left text-sm tracking-[0.16em] uppercase dark:border-[#0d0a19] dark:bg-[hsl(var(--neo-panel-muted))]">
-              <th className="px-5 py-4 font-semibold">Repository</th>
+              <th className="px-5 py-4 font-semibold">仓库</th>
               <th className="hidden px-5 py-4 font-semibold lg:table-cell lg:w-[104px]">
-                Stars
+                Star 数
               </th>
               <th className="w-[188px] px-5 py-4 font-semibold lg:w-[188px] xl:w-[220px]">
-                Last Generated
+                上次生成
               </th>
               <th className="w-[280px] px-5 py-4 font-semibold lg:pr-6 xl:w-[304px] xl:pr-7">
-                Actions
+                操作
               </th>
             </tr>
           </thead>
@@ -145,7 +145,7 @@ export function BrowseCatalogResults({
                             aria-hidden="true"
                             className="size-3.5 lg:hidden"
                           />
-                          <span className="sr-only">Last generated </span>
+                          <span className="sr-only">上次生成 </span>
                           <GeneratedAtTime value={item.lastSuccessfulAt} />
                         </span>
                       </div>
@@ -157,7 +157,7 @@ export function BrowseCatalogResults({
                           prefetch={false}
                           className="neo-button inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-md px-3 py-2 text-sm font-semibold whitespace-nowrap lg:min-h-0 lg:min-w-0 lg:px-3 lg:py-2 lg:text-sm xl:w-auto xl:min-w-[148px] xl:px-4"
                         >
-                          Open Diagram
+                          打开图表
                           <ArrowRight
                             aria-hidden="true"
                             className="size-4 lg:hidden"
@@ -181,7 +181,7 @@ export function BrowseCatalogResults({
 
       <div className="flex flex-wrap items-center justify-between gap-3">
         <p className="text-sm text-[hsl(var(--neo-soft-text))] dark:text-neutral-300">
-          Page {result.page} of {result.totalPages}
+          第 {result.page} 页，共 {result.totalPages} 页
         </p>
         <div className="flex gap-2 sm:gap-3">
           <button
@@ -192,7 +192,7 @@ export function BrowseCatalogResults({
               hasPreviousPage ? "" : "cursor-not-allowed opacity-50"
             }`}
           >
-            Previous
+            上一页
           </button>
           <button
             type="button"
@@ -204,7 +204,7 @@ export function BrowseCatalogResults({
                 : "cursor-not-allowed border-[3px] border-black bg-[hsl(var(--neo-button))] opacity-50 dark:border-[#1a0d30]"
             }`}
           >
-            Next
+            下一页
           </button>
         </div>
       </div>

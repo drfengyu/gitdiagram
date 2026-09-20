@@ -14,10 +14,7 @@ import {
   isComplimentaryGateEnabled,
   modelMatchesComplimentaryFamily,
 } from "~/server/generate/complimentary-gate";
-import {
-  getGithubData,
-  REPOSITORY_TOO_LARGE_ERROR,
-} from "~/server/generate/github";
+import { getGithubData } from "~/server/generate/github";
 import {
   getModel,
   getProvider,
@@ -34,7 +31,11 @@ import {
 } from "~/server/generate/pricing";
 import { parseGenerateRequest } from "~/server/generate/types";
 import { getClientIp } from "~/server/http/client-ip";
-import { classifyGitHubError } from "~/server/generate/github-errors";
+import {
+  classifyGitHubError,
+  GitHubApiError,
+  GitHubRequestError,
+} from "~/server/generate/github-errors";
 import { resolveRequestCredentials } from "~/server/http/request-credentials";
 import { isSameOriginRequest } from "~/server/http/same-origin";
 
@@ -206,13 +207,18 @@ export async function POST(request: Request) {
       );
     }
     const message =
-      error instanceof Error
-        ? error.message
-        : "Failed to estimate generation cost.";
+      error instanceof Error ? error.message : "估算生成成本失败。";
     const timedOut = deadlineSignal.aborted;
     const pricingUnavailable = error instanceof ModelPricingUnavailableError;
-    const repositoryTooLarge = message === REPOSITORY_TOO_LARGE_ERROR;
-    const repositoryNotFound = message === "Repository not found.";
+    // These are already-classified conditions: the flags decide whether raw
+    // upstream text may reach the log/response, so they key off the stable
+    // error code rather than the display message.
+    const githubCode =
+      error instanceof GitHubApiError || error instanceof GitHubRequestError
+        ? error.code
+        : undefined;
+    const repositoryTooLarge = githubCode === "repository_too_large";
+    const repositoryNotFound = githubCode === "repository_not_found";
 
     if (!timedOut && !repositoryTooLarge && !repositoryNotFound) {
       // Upstream failures carry raw GitHub and provider response bodies. Log
@@ -230,12 +236,12 @@ export async function POST(request: Request) {
       {
         ok: false,
         error: timedOut
-          ? "Cost estimation timed out. Please retry."
+          ? "成本估算超时，请稍后重试。"
           : pricingUnavailable
             ? MODEL_PRICING_UNAVAILABLE_ERROR
             : repositoryTooLarge || repositoryNotFound
               ? message
-              : "Failed to estimate generation cost. Please retry.",
+              : "估算生成成本失败，请稍后重试。",
         error_code: timedOut
           ? "GENERATION_TIMEOUT"
           : pricingUnavailable

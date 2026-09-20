@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   if (!result) {
     return Response.json(
-      { error: "Browse index unavailable." },
+      { error: "浏览索引暂不可用。" },
       {
         status: 404,
         headers: {

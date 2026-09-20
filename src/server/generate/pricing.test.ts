@@ -30,7 +30,7 @@ describe("resolvePricingModel", () => {
     expect(resolvePricingModel("anthropic/claude-opus-5")).toBeNull();
     expect(() =>
       estimateTextTokenCostUsd("anthropic/claude-opus-5", 1_000_000, 1_000_000),
-    ).toThrow("Cost information is unavailable");
+    ).toThrow("暂无成本信息");
   });
 });
 
@@ -86,9 +86,7 @@ describe("createEstimateCostSummary", () => {
     expect(result.approximate).toBe(true);
     expect(result.usage.inputTokens).toBe(8_300);
     expect(result.usage.outputTokens).toBe(14_000);
-    expect(result.note).toContain(
-      "estimated output usage; actual usage may be higher",
-    );
+    expect(result.note).toContain("实际用量可能更高");
   });
 });
 

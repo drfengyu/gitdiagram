@@ -24,18 +24,16 @@ describe("MainCard", () => {
     render(<MainCard isHome={false} />);
 
     const input = screen.getByRole("textbox", {
-      name: "GitHub repository",
+      name: "GitHub 仓库",
     });
     fireEvent.change(input, {
       target: { value: "facebook/react" },
     });
-    fireEvent.click(screen.getByRole("button", { name: "Diagram" }));
+    fireEvent.click(screen.getByRole("button", { name: "生成图表" }));
 
     expect(push).toHaveBeenCalledWith("/facebook/react");
     expect(
-      screen.queryByText(
-        "Please enter a valid GitHub repository URL or owner/repo",
-      ),
+      screen.queryByText("请输入有效的 GitHub 仓库 URL 或 owner/repo"),
     ).not.toBeInTheDocument();
   });
 
@@ -43,14 +41,14 @@ describe("MainCard", () => {
     render(<MainCard isHome={false} />);
 
     const input = screen.getByRole("textbox", {
-      name: "GitHub repository",
+      name: "GitHub 仓库",
     });
     fireEvent.change(input, { target: { value: "not-a-repository" } });
-    fireEvent.click(screen.getByRole("button", { name: "Diagram" }));
+    fireEvent.click(screen.getByRole("button", { name: "生成图表" }));
 
     expect(input).toHaveAttribute("aria-invalid", "true");
     expect(input).toHaveAccessibleDescription(
-      "Please enter a valid GitHub repository URL or owner/repo",
+      "请输入有效的 GitHub 仓库 URL 或 owner/repo",
     );
   });
 
@@ -64,9 +62,7 @@ describe("MainCard", () => {
 
     expect(push).toHaveBeenCalledWith("/fastapi/fastapi");
     expect(
-      screen.queryByText(
-        "Please enter a valid GitHub repository URL or owner/repo",
-      ),
+      screen.queryByText("请输入有效的 GitHub 仓库 URL 或 owner/repo"),
     ).not.toBeInTheDocument();
   });
 });

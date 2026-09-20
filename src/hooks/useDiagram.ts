@@ -9,10 +9,13 @@ import type {
   DiagramStateResponse,
   DiagramStreamState,
 } from "~/features/diagram/types";
+import type { GenerationErrorCode } from "~/features/diagram/error-codes";
 import { useDiagramStream } from "~/hooks/diagram/useDiagramStream";
 import { isExampleRepo } from "~/lib/exampleRepos";
 
 type DiagramStateSyncMode = "foreground" | "background";
+
+const GENERIC_GENERATION_FAILURE = "生成失败，请稍后重试。";
 
 function toInitialStreamState(
   stateRecord: DiagramStateResponse | null | undefined,
@@ -46,7 +49,7 @@ function getFailureMessage(
 function toGenerationFailure(
   error: unknown,
   fallbackMessage: string,
-): { error: string; errorCode?: string } {
+): { error: string; errorCode?: GenerationErrorCode } {
   // Pre-stream HTTP rejections carry the server's own explanation (e.g. the
   // rate-limit wait time); surface it verbatim like SSE errors already are.
   if (error instanceof DiagramStreamHttpError) {
@@ -188,6 +191,11 @@ export function useDiagram(
           : storedDiagram
             ? undefined
             : prev.error,
+        // A failure stored by an earlier visitor carries its own code, so the
+        // page can offer the same call to action it would during streaming.
+        errorCode: shouldExposeFailure
+          ? latestAudit?.errorCode
+          : prev.errorCode,
       }));
 
       return Boolean(storedDiagram);
@@ -238,7 +246,7 @@ export function useDiagram(
         if (mode === "foreground" && isCurrentSync()) {
           const failure = toGenerationFailure(
             error,
-            "Something went wrong. Please try again later.",
+            GENERIC_GENERATION_FAILURE,
           );
           setState((prev) => ({
             ...prev,
@@ -316,9 +324,7 @@ export function useDiagram(
       return;
     }
 
-    await runGenerationOperation(
-      "Something went wrong. Please try again later.",
-    );
+    await runGenerationOperation(GENERIC_GENERATION_FAILURE);
   }, [getDiagram, repo, runGenerationOperation, state.status, username]);
 
   const handleCancel = useCallback(() => {
@@ -368,9 +374,7 @@ export function useDiagram(
   const error = state.error ?? "";
 
   const handleApiKeySaved = async () => {
-    await runGenerationOperation(
-      "Failed to generate diagram with provided API key.",
-    );
+    await runGenerationOperation("使用你提供的 API Key 生成图表失败。");
   };
 
   const handleCloseApiKeyDialog = () => {
@@ -386,7 +390,7 @@ export function useDiagram(
       setState((prev) => ({
         ...prev,
         status: "error",
-        error: `Diagram render failed: ${renderMessage}`,
+        error: `图表渲染失败：${renderMessage}`,
         failureStage: "browser_render",
         validationError: renderMessage,
       }));

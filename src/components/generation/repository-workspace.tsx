@@ -106,7 +106,7 @@ export function RepositoryWorkspace({
     <section
       ref={workspace}
       className={styles.workspace}
-      aria-label="Repository diagram"
+      aria-label="仓库图表"
       data-repository-workspace
       data-ready={ready}
       data-has-diagram={Boolean(presented)}
@@ -168,7 +168,7 @@ export function RepositoryWorkspace({
       <div
         id={historyId}
         role="region"
-        aria-label="Generation activity"
+        aria-label="生成活动"
         className={styles.fold}
         data-open={historyVisible}
         aria-hidden={!historyVisible}
@@ -221,7 +221,7 @@ export function RepositoryWorkspace({
       </div>
       {failed && state.latestSessionAudit && (
         <details className={styles.diagnostics}>
-          <summary>Technical details</summary>
+          <summary>技术细节</summary>
           <GenerationAuditPanel audit={state.latestSessionAudit} />
         </details>
       )}

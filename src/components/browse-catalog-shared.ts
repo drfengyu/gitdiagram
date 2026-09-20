@@ -25,18 +25,18 @@ const generatedAtFormatter = new Intl.DateTimeFormat(undefined, {
   timeStyle: "short",
 });
 const utcMonthNames = [
-  "Jan",
-  "Feb",
-  "Mar",
-  "Apr",
-  "May",
-  "Jun",
-  "Jul",
-  "Aug",
-  "Sep",
-  "Oct",
-  "Nov",
-  "Dec",
+  "1月",
+  "2月",
+  "3月",
+  "4月",
+  "5月",
+  "6月",
+  "7月",
+  "8月",
+  "9月",
+  "10月",
+  "11月",
+  "12月",
 ] as const;
 
 const BROWSE_SESSION_STORAGE_KEY = "gitdiagram:browse-query";
@@ -88,26 +88,26 @@ export function formatGeneratedAt(value: string) {
   const date = new Date(value);
   return Number.isFinite(date.getTime())
     ? generatedAtFormatter.format(date)
-    : "Unknown";
+    : "未知";
 }
 
 export function formatGeneratedAtUtc(value: string) {
   const date = new Date(value);
   if (!Number.isFinite(date.getTime())) {
-    return "Unknown";
+    return "未知";
   }
 
   const hour = date.getUTCHours();
   const hour12 = hour % 12 || 12;
   const minute = date.getUTCMinutes().toString().padStart(2, "0");
 
-  return `${utcMonthNames[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}, ${hour12}:${minute} ${hour < 12 ? "AM" : "PM"} UTC`;
+  return `${utcMonthNames[date.getUTCMonth()]} ${date.getUTCDate()}, ${date.getUTCFullYear()}, ${hour12}:${minute} ${hour < 12 ? "上午" : "下午"} UTC`;
 }
 
 export function formatStarSummary(stargazerCount: number | null) {
   return stargazerCount === null
-    ? "No star data"
-    : `${formatStarCount(stargazerCount)} stars`;
+    ? "暂无 Star 数据"
+    : `${formatStarCount(stargazerCount)} Star`;
 }
 
 export function syncBrowseUrl(

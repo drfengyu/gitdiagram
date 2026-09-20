@@ -10,7 +10,7 @@ const MermaidChart = dynamic(loadMermaidChart, {
   ssr: false,
   loading: () => (
     <div className="flex h-[248px] items-center justify-center px-6 text-center text-xs font-semibold tracking-[0.18em] text-[hsl(var(--neo-soft-text))] uppercase dark:text-neutral-300">
-      Rendering preview
+      正在渲染预览
     </div>
   ),
 });
@@ -35,7 +35,7 @@ export function BrowseDiagramPreview({
       className="neo-panel w-[360px] overflow-hidden rounded-lg"
     >
       <div className="border-b-[3px] border-black bg-[hsl(var(--neo-panel-muted))] px-4 py-3 text-[11px] font-semibold tracking-[0.18em] uppercase dark:border-[#0d0a19] dark:bg-[hsl(var(--neo-panel-muted))]">
-        Preview
+        预览
       </div>
       <div className="border-b border-black/10 px-4 py-2 text-sm font-semibold break-all dark:border-white/10">
         {repoLabel}
@@ -50,7 +50,7 @@ export function BrowseDiagramPreview({
         <div
           className={`flex items-center justify-center px-6 text-center text-sm text-[hsl(var(--neo-soft-text))] dark:text-neutral-300 ${PREVIEW_BODY_CLASS}`}
         >
-          Preview unavailable.
+          预览不可用。
         </div>
       ) : (
         <MermaidChart

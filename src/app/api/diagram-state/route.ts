@@ -28,7 +28,7 @@ export async function POST(request: Request): Promise<Response> {
   const parsed = await parseSameOriginJsonRequest(request, {
     schema: diagramStateRequestSchema,
     maxBytes: MAX_DIAGRAM_STATE_REQUEST_BYTES,
-    crossOriginError: "Cross-origin state access is not allowed.",
+    crossOriginError: "不允许跨域访问状态。",
   });
   if (!parsed.success) {
     return parsed.response;
@@ -49,9 +49,9 @@ export async function POST(request: Request): Promise<Response> {
       JSON.stringify({
         event: "diagram_state.read_failed",
         visibility: "unknown",
-        error: "Diagram state is temporarily unavailable.",
+        error: "图表状态暂时不可用。",
       }),
     );
-    return jsonErrorResponse("Diagram state is temporarily unavailable.", 503);
+    return jsonErrorResponse("图表状态暂时不可用。", 503);
   }
 }

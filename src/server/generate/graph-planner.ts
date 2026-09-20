@@ -84,8 +84,8 @@ export async function generateValidatedGraph(
     status: "graph_sent",
     session_id: params.sessionId,
     message: params.initialGraph
-      ? "Validating repository graph..."
-      : `Sending graph planning request to ${params.model}...`,
+      ? "正在校验仓库架构图…"
+      : `正在向 ${params.model} 发起图规划请求…`,
   });
 
   for (let attempt = 1; attempt <= MAX_GRAPH_ATTEMPTS; attempt++) {
@@ -94,8 +94,8 @@ export async function generateValidatedGraph(
     const status = attempt === 1 ? "graph" : "graph_retry";
     const message =
       attempt === 1
-        ? "Planning repository graph..."
-        : `Retrying graph planning (${attempt}/${MAX_GRAPH_ATTEMPTS})...`;
+        ? "正在规划仓库架构图…"
+        : `正在重试图规划(${attempt}/${MAX_GRAPH_ATTEMPTS})…`;
 
     audit = withTimelineEvent(audit, status, message);
     void params.send({
@@ -244,12 +244,12 @@ export async function generateValidatedGraph(
     audit = withTimelineEvent(
       audit,
       "graph_validating",
-      `Graph validation failed on attempt ${attempt}/${MAX_GRAPH_ATTEMPTS}.`,
+      `第 ${attempt}/${MAX_GRAPH_ATTEMPTS} 次图规划校验未通过。`,
     );
     void params.send({
       status: "graph_validating",
       session_id: params.sessionId,
-      message: `Graph validation failed on attempt ${attempt}/${MAX_GRAPH_ATTEMPTS}.`,
+      message: `第 ${attempt}/${MAX_GRAPH_ATTEMPTS} 次图规划校验未通过。`,
       validation_error: validationFeedback,
       graph_attempts: audit.graphAttempts,
     });
@@ -258,8 +258,6 @@ export async function generateValidatedGraph(
   return {
     ok: false,
     audit,
-    validationError:
-      validationFeedback ??
-      "Graph generation failed validation after the maximum number of attempts.",
+    validationError: validationFeedback ?? "图生成在多次尝试后仍未通过校验。",
   };
 }

@@ -99,8 +99,8 @@ describe("generation rate limit configuration", () => {
   });
 
   it("reports the wait in whole minutes, never rounding down to zero", () => {
-    expect(getGenerationRateLimitMessage(30)).toContain("1 minute");
-    expect(getGenerationRateLimitMessage(600)).toContain("10 minutes");
+    expect(getGenerationRateLimitMessage(30)).toContain("约 1 分钟");
+    expect(getGenerationRateLimitMessage(600)).toContain("约 10 分钟");
   });
 });
 

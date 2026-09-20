@@ -5,15 +5,15 @@ import { ChevronDown, Search } from "lucide-react";
 import type { BrowseSort } from "~/features/browse/catalog";
 
 const sortOptions: Array<{ value: BrowseSort; label: string }> = [
-  { value: "recent_desc", label: "Newest" },
-  { value: "recent_asc", label: "Oldest" },
-  { value: "stars_desc", label: "Most Stars" },
-  { value: "stars_asc", label: "Least Stars" },
-  { value: "name_asc", label: "Name (A-Z)" },
+  { value: "recent_desc", label: "最新" },
+  { value: "recent_asc", label: "最早" },
+  { value: "stars_desc", label: "Star 数最多" },
+  { value: "stars_asc", label: "Star 数最少" },
+  { value: "name_asc", label: "名称 (A-Z)" },
 ];
 
 const minStarOptions = [
-  { value: 0, label: "Any" },
+  { value: 0, label: "全部" },
   { value: 10, label: "10+" },
   { value: 100, label: "100+" },
   { value: 1000, label: "1,000+" },
@@ -40,7 +40,7 @@ export function BrowseCatalogControls({
     <div className="browse-controls neo-panel grid grid-cols-[minmax(0,1.4fr)_minmax(0,1fr)] gap-4 rounded-lg p-4 md:grid-cols-[minmax(0,1fr)_220px_180px] md:gap-5 md:p-6">
       <label className="col-span-2 flex min-w-0 flex-col gap-2 md:col-span-1">
         <span className="text-xs font-semibold tracking-[0.1em] text-black uppercase dark:text-[hsl(var(--foreground))]">
-          Search Repositories
+          搜索仓库
         </span>
         <span className="relative block">
           <Search
@@ -51,7 +51,7 @@ export function BrowseCatalogControls({
             type="search"
             value={searchInput}
             onChange={(event) => onSearchChange(event.target.value)}
-            placeholder="Search owner/repo"
+            placeholder="搜索 owner/repo"
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
@@ -62,7 +62,7 @@ export function BrowseCatalogControls({
 
       <label className="flex min-w-0 flex-col gap-2">
         <span className="text-xs font-semibold tracking-[0.1em] text-black uppercase dark:text-[hsl(var(--foreground))]">
-          Sort
+          排序
         </span>
         <span className="relative block">
           <select
@@ -85,12 +85,12 @@ export function BrowseCatalogControls({
 
       <label className="flex min-w-0 flex-col gap-2">
         <span className="text-xs font-semibold tracking-[0.1em] text-black uppercase dark:text-[hsl(var(--foreground))]">
-          <span className="sm:hidden">Min. stars</span>
-          <span className="hidden sm:inline">Minimum Stars</span>
+          <span className="sm:hidden">最少 Star 数</span>
+          <span className="hidden sm:inline">最少 Star 数</span>
         </span>
         <span className="relative block">
           <select
-            aria-label="Minimum Stars"
+            aria-label="最少 Star 数"
             value={String(minStars)}
             onChange={(event) =>
               onMinStarsChange(Number.parseInt(event.target.value, 10))

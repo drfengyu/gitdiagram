@@ -25,12 +25,10 @@ export function BrowseCatalogLoadingState(props: BrowseCatalogControlsProps) {
           </colgroup>
           <thead className="hidden lg:table-header-group">
             <tr className="border-b-[3px] border-black bg-[hsl(var(--neo-panel-muted))] text-left text-sm tracking-[0.16em] uppercase dark:border-[#0d0a19] dark:bg-[hsl(var(--neo-panel-muted))]">
-              <th className="px-5 py-4 font-semibold">Repository</th>
-              <th className="px-5 py-4 font-semibold">Stars</th>
-              <th className="px-5 py-4 font-semibold">Last Generated</th>
-              <th className="px-5 py-4 font-semibold lg:pr-6 xl:pr-7">
-                Actions
-              </th>
+              <th className="px-5 py-4 font-semibold">仓库</th>
+              <th className="px-5 py-4 font-semibold">Star 数</th>
+              <th className="px-5 py-4 font-semibold">上次生成</th>
+              <th className="px-5 py-4 font-semibold lg:pr-6 xl:pr-7">操作</th>
             </tr>
           </thead>
           <tbody className="block lg:table-row-group">

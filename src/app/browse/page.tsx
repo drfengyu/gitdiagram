@@ -7,9 +7,8 @@ import { Skeleton } from "~/components/ui/skeleton";
 import type { BrowseQuery } from "~/features/browse/catalog";
 
 export const metadata: Metadata = {
-  title: "Browse Diagrams | GitDiagram",
-  description:
-    "Browse all public repositories with stored diagrams, sorted by recency or stars.",
+  title: "浏览图表 | GitDiagram",
+  description: "浏览所有已生成架构图的公开仓库，可按最新或 Star 数排序。",
   alternates: {
     canonical: "/browse",
   },
@@ -72,10 +71,10 @@ export default async function BrowsePage({
       <div className="mx-auto max-w-6xl">
         <section className="mb-5 max-w-3xl sm:mb-8">
           <h1 className="text-4xl leading-[1.05] font-bold tracking-tight text-balance sm:text-5xl">
-            Browse diagrams
+            浏览图表
           </h1>
           <p className="mt-3 max-w-[34rem] text-base leading-relaxed text-pretty text-[hsl(var(--neo-soft-text))] sm:leading-normal dark:text-neutral-300">
-            Explore public repositories, one diagram at a time.
+            逐个探索公开仓库，一次看懂一张架构图。
           </p>
         </section>
 

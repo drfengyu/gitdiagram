@@ -35,7 +35,7 @@ export function DiagramMetadata({
           data-hydrated={hydrated}
           aria-hidden={!hydrated}
         >
-          Generated{" "}
+          上次生成{" "}
           <time
             dateTime={lastGenerated.toISOString()}
             title={lastGenerated.toISOString()}
@@ -46,7 +46,7 @@ export function DiagramMetadata({
       )}
       {cost && (
         <span>
-          {cost.kind === "actual" ? "Actual" : "Estimated"} cost: {cost.display}
+          {cost.kind === "actual" ? "实际" : "预估"}成本：{cost.display}
         </span>
       )}
     </div>

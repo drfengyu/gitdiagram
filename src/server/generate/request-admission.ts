@@ -168,7 +168,7 @@ export async function admitGenerationRequest(
         JSON.stringify({
           event: "generate.cancellation.registration_failed",
           session_id: sessionId,
-          error: "Cancellation registration is temporarily unavailable.",
+          error: "暂时无法登记取消请求。",
         }),
       );
       await refundAdmissionRateLimits();
@@ -176,7 +176,7 @@ export async function admitGenerationRequest(
         admitted: false,
         response: jsonError(
           {
-            error: "Generation is temporarily unavailable. Please retry.",
+            error: "生成服务暂时不可用，请稍后重试。",
             errorCode: "CANCELLATION_UNAVAILABLE",
           },
           { status: 503 },
@@ -190,7 +190,7 @@ export async function admitGenerationRequest(
         admitted: false,
         response: jsonError(
           {
-            error: "Generation session already exists. Please retry.",
+            error: "该生成会话已存在，请稍后重试。",
             errorCode: "SESSION_CONFLICT",
           },
           { status: 409 },

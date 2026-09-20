@@ -4,9 +4,8 @@ import { SponsorPageContent } from "./sponsor-page-content";
 import { createSponsorContent } from "./sponsor-content";
 
 export const metadata: Metadata = {
-  title: "Sponsor GitDiagram",
-  description:
-    "Reach developers while they are actively inspecting GitHub repositories with GitDiagram.",
+  title: "赞助 GitDiagram",
+  description: "在开发者使用 GitDiagram 查看 GitHub 仓库时触达他们。",
   alternates: { canonical: "/sponsor" },
 };
 

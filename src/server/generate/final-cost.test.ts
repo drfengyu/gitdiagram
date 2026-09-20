@@ -81,7 +81,7 @@ describe("createFinalGenerationCostSummary", () => {
         outputTokens: 500 + GRAPH_ESTIMATED_OUTPUT_TOKENS * 2,
       },
     });
-    expect(result.note).toContain("3 graph-planning attempts");
+    expect(result.note).toContain("3 次图规划尝试");
   });
 
   it("uses the initial request estimate as a safe retry fallback", () => {

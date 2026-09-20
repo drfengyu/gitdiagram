@@ -59,14 +59,14 @@ export function DiagramExport({
           setOpen(!open);
         }}
       >
-        <Download size={13} aria-hidden="true" /> Export{" "}
+        <Download size={13} aria-hidden="true" /> 导出{" "}
         <ChevronDown size={12} aria-hidden="true" />
       </button>
       <div
         id={id}
         className={styles.exportMenu}
         role="group"
-        aria-label="Export diagram"
+        aria-label="导出图表"
         data-open={open}
         data-motion={pointerMotion}
         aria-hidden={!open}
@@ -75,11 +75,11 @@ export function DiagramExport({
         <TooltipProvider delayDuration={350} skipDelayDuration={300}>
           <div className={styles.exportOptions}>
             <ExportAction
-              label="Download PNG"
-              successLabel="Downloaded"
-              announcement="PNG downloaded"
-              description="Save a high-resolution image of the diagram"
-              errorMessage="Download failed. Try again."
+              label="下载 PNG"
+              successLabel="已下载"
+              announcement="PNG 已下载"
+              description="保存图表的高清图片"
+              errorMessage="下载失败，请重试。"
               icon={ImageDown}
               onAction={async () => {
                 const svg = getSvg();
@@ -91,11 +91,11 @@ export function DiagramExport({
               }}
             />
             <ExportAction
-              label="Copy Mermaid"
-              successLabel="Copied"
-              announcement="Mermaid copied"
-              description="Copy the editable Mermaid diagram code"
-              errorMessage="Copy failed. Try again."
+              label="复制 Mermaid"
+              successLabel="已复制"
+              announcement="Mermaid 已复制"
+              description="复制可编辑的 Mermaid 图表代码"
+              errorMessage="复制失败，请重试。"
               icon={Copy}
               onAction={() => navigator.clipboard.writeText(diagram)}
             />

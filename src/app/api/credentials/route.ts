@@ -34,7 +34,7 @@ export async function POST(request: Request): Promise<Response> {
   const parsed = await parseSameOriginJsonRequest(request, {
     schema: credentialActionSchema,
     maxBytes: MAX_CREDENTIAL_REQUEST_BYTES,
-    crossOriginError: "Cross-origin credential access is not allowed.",
+    crossOriginError: "不允许跨域访问凭据。",
   });
   if (!parsed.success) {
     return parsed.response;
@@ -57,12 +57,9 @@ export async function POST(request: Request): Promise<Response> {
       JSON.stringify({
         event: "credentials.update_failed",
         action: parsed.data.action,
-        error: "Credential settings are temporarily unavailable.",
+        error: "凭据设置暂时不可用。",
       }),
     );
-    return jsonErrorResponse(
-      "Credential settings are temporarily unavailable.",
-      503,
-    );
+    return jsonErrorResponse("凭据设置暂时不可用。", 503);
   }
 }

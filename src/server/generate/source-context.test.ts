@@ -77,7 +77,7 @@ describe("bounded source ingestion", () => {
         githubData: { ...repo(), isPrivate: true },
         selectedPaths: ["src/main.ts"],
       }),
-    ).rejects.toThrow("GitHub token");
+    ).rejects.toThrow("GitHub 令牌");
     expect(fetchMock).not.toHaveBeenCalled();
   });
   it("degrades unavailable or binary source to an explicit coverage limit", async () => {

@@ -22,9 +22,7 @@ it("shows the saved explanation rather than its HTML heading and keeps markup in
   expect(
     screen.queryByText("<h2>Purpose and workflow</h2>"),
   ).not.toBeInTheDocument();
-  fireEvent.click(
-    screen.getByRole("button", { name: "Architecture overview" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "架构概览" }));
   expect(screen.getByText("Purpose and workflow")).toBeVisible();
   expect(screen.getByText("app/Home.tsx").tagName).toBe("CODE");
   expect(document.querySelector("script, img")).toBeNull();

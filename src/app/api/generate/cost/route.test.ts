@@ -1,6 +1,8 @@
 // @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
+import { GitHubRequestError } from "~/server/generate/github-errors";
+
 const mocks = vi.hoisted(() => ({
   estimateCost: vi.fn(),
   getGithubData: vi.fn(),
@@ -28,7 +30,7 @@ vi.mock("~/server/generate/complimentary-gate", () => ({
 vi.mock("~/server/generate/github", () => ({
   getGithubData: mocks.getGithubData,
   REPOSITORY_TOO_LARGE_ERROR:
-    "Repository is too large (>195k tokens) for analysis. Try a smaller repo.",
+    "仓库过大(超过 195k tokens)，无法分析，请换小一些的仓库。",
 }));
 vi.mock("~/server/generate/model-config", async (importOriginal) => ({
   ...(await importOriginal<object>()),
@@ -189,20 +191,27 @@ describe("POST /api/generate/cost", () => {
 
     expect(response.status).toBe(500);
     const body = (await response.json()) as { error: string };
-    expect(body.error).toBe(
-      "Failed to estimate generation cost. Please retry.",
-    );
+    expect(body.error).toBe("估算生成成本失败，请稍后重试。");
     expect(body.error).not.toContain("rate limit");
   });
 
   it("still surfaces the actionable repository errors verbatim", async () => {
-    mocks.getGithubData.mockRejectedValue(new Error("Repository not found."));
+    // Mirrors the real 404 path in `fetchJsonResult`, which tags the request
+    // error with a code rather than relying on its sentence.
+    mocks.getGithubData.mockRejectedValue(
+      new GitHubRequestError(
+        "Repository not found.",
+        404,
+        false,
+        "repository_not_found",
+      ),
+    );
 
     const response = await POST(request());
 
     expect(response.status).toBe(404);
     await expect(response.json()).resolves.toMatchObject({
-      error: expect.stringContaining("GitHub access"),
+      error: expect.stringContaining("GitHub 访问"),
       error_code: "REPOSITORY_NOT_FOUND",
     });
   });
@@ -234,7 +243,7 @@ describe("POST /api/generate/cost", () => {
     expect(response.status).toBe(504);
     await expect(response.json()).resolves.toMatchObject({
       ok: false,
-      error: "Cost estimation timed out. Please retry.",
+      error: "成本估算超时，请稍后重试。",
       error_code: "GENERATION_TIMEOUT",
     });
   });

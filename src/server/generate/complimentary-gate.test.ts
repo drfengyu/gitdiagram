@@ -117,7 +117,7 @@ describe("complimentary gate", () => {
     expect(result).toEqual({
       admitted: false,
       message:
-        "GitDiagram's free daily OpenAI capacity is used up for now. I'm a solo student engineer running this free and open source, so please try again after 00:00 UTC or use your own OpenAI API key.",
+        "GitDiagram 每天免费的 OpenAI 额度已用完。这是一个免费开源项目，由一名在校学生独立维护，请在 UTC 00:00 之后重试，或使用你自己的 OpenAI API Key。",
       quotaResetAt: "2026-03-29T00:00:00.000Z",
     });
     expect(checkQuotaInUpstash).toHaveBeenCalledWith({

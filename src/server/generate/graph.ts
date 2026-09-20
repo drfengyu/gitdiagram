@@ -80,7 +80,7 @@ export function parseDiagramGraph(rawOutput: string): {
           "graph",
           error instanceof Error
             ? error.message
-            : "Graph output was not valid JSON.",
+            : "图规划输出不是有效的 JSON。",
         ),
       ],
     };

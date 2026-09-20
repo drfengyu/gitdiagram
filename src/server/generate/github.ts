@@ -1,5 +1,10 @@
 import { getGitHubApiHeaders } from "../github-auth";
-import { GitHubRequestError } from "./github-errors";
+import {
+  GitHubApiError,
+  GitHubRequestError,
+  type GitHubErrorCode,
+  hasGitHubErrorCode,
+} from "./github-errors";
 
 interface GitHubRepoResponse {
   default_branch?: string;
@@ -46,20 +51,20 @@ export interface GithubData {
 export type RepositoryPathType = "blob" | "tree";
 
 export const REPOSITORY_TOO_LARGE_ERROR =
-  "Repository is too large (>195k tokens) for analysis. Try a smaller repo.";
+  "仓库过大(超过 195k tokens)，无法分析，请换小一些的仓库。";
 // Messages this module authors itself. They describe the caller's own request
 // and carry no upstream response text, so `normalizeGenerationError` is willing
 // to show them verbatim.
-const GITHUB_REQUEST_TIMEOUT_ERROR = "GitHub request timed out. Please retry.";
-const REPOSITORY_NOT_FOUND_ERROR = "Repository not found.";
-const FILE_TREE_UNAVAILABLE_ERROR = "Could not fetch repository file tree.";
-const EMPTY_REPOSITORY_ERROR =
-  "Could not fetch repository file tree. Repository might be empty or inaccessible.";
+const GITHUB_REQUEST_TIMEOUT_ERROR = "GitHub 请求超时，请重试。";
+const REPOSITORY_NOT_FOUND_ERROR = "未找到该仓库。";
+const FILE_TREE_UNAVAILABLE_ERROR = "无法获取仓库文件树。";
+const EMPTY_REPOSITORY_ERROR = "无法获取仓库文件树，仓库可能为空或不可访问。";
 function buildGithubRequestFailedError(status: number): string {
-  return `GitHub request failed (${status}). Please retry.`;
+  return `GitHub 请求失败(${status})，请重试。`;
 }
-const PRIVATE_REPOSITORY_AUTH_REQUIRED_ERROR =
-  "A GitHub token is required to analyze a private repository.";
+export const PRIVATE_REPOSITORY_AUTH_REQUIRED_ERROR =
+  "分析私有仓库需要 GitHub 令牌。";
+const UNEXPECTED_NOT_MODIFIED_ERROR = "GitHub 返回了意外的 not-modified 响应。";
 export const MAX_INCLUDED_FILE_TREE_CHARACTERS = 780_000;
 export const MAX_README_BYTES = 750_000;
 export const GITHUB_REQUEST_TIMEOUT_MS = 30_000;
@@ -154,6 +159,7 @@ async function fetchJsonResult<T>(
   signal?: AbortSignal,
   ifNoneMatch?: string,
   conflictMessage?: string,
+  notFoundCode: GitHubErrorCode = "repository_not_found",
 ): Promise<JsonFetchResult<T>> {
   const timeoutSignal = AbortSignal.timeout(GITHUB_REQUEST_TIMEOUT_MS);
   const requestHeaders = new Headers(headers);
@@ -169,7 +175,7 @@ async function fetchJsonResult<T>(
     });
   } catch (error) {
     if (timeoutSignal.aborted && !signal?.aborted) {
-      throw new Error(GITHUB_REQUEST_TIMEOUT_ERROR);
+      throw new GitHubApiError("request_timeout", GITHUB_REQUEST_TIMEOUT_ERROR);
     }
     throw error;
   }
@@ -179,13 +185,13 @@ async function fetchJsonResult<T>(
   }
 
   if (response.status === 404) {
-    throw new GitHubRequestError(notFoundMessage, 404);
+    throw new GitHubRequestError(notFoundMessage, 404, false, notFoundCode);
   }
 
   // GitHub answers 409 ("Git Repository is empty.") for zero-commit repos on
   // the trees endpoint — a permanent condition, not a transient failure.
   if (response.status === 409 && conflictMessage) {
-    throw new Error(conflictMessage);
+    throw new GitHubApiError("repository_empty", conflictMessage);
   }
 
   if (!response.ok) {
@@ -223,15 +229,22 @@ async function fetchJson<T>(
   headers: HeadersInit,
   notFoundMessage: string,
   signal?: AbortSignal,
+  notFoundCode: GitHubErrorCode = "repository_not_found",
 ): Promise<T> {
   const result = await fetchJsonResult<T>(
     url,
     headers,
     notFoundMessage,
     signal,
+    undefined,
+    undefined,
+    notFoundCode,
   );
   if (result.notModified) {
-    throw new Error("GitHub returned an unexpected not-modified response.");
+    throw new GitHubApiError(
+      "not_modified_conflict",
+      UNEXPECTED_NOT_MODIFIED_ERROR,
+    );
   }
   return result.value;
 }
@@ -291,6 +304,7 @@ async function getFileTree(
     signal,
     cached?.etag,
     EMPTY_REPOSITORY_ERROR,
+    "tree_unavailable",
   );
   if (result.notModified && cached) {
     return {
@@ -300,12 +314,18 @@ async function getFileTree(
     };
   }
   if (result.notModified) {
-    throw new Error("GitHub returned an unexpected not-modified response.");
+    throw new GitHubApiError(
+      "not_modified_conflict",
+      UNEXPECTED_NOT_MODIFIED_ERROR,
+    );
   }
   const data = result.value;
 
   if (data.truncated === true) {
-    throw new Error(REPOSITORY_TOO_LARGE_ERROR);
+    throw new GitHubApiError(
+      "repository_too_large",
+      REPOSITORY_TOO_LARGE_ERROR,
+    );
   }
 
   const paths: string[] = [];
@@ -331,12 +351,15 @@ async function getFileTree(
   }
 
   if (!paths.length) {
-    throw new Error(EMPTY_REPOSITORY_ERROR);
+    throw new GitHubApiError("repository_empty", EMPTY_REPOSITORY_ERROR);
   }
 
   const fileTree = paths.join("\n");
   if (fileTree.length > MAX_INCLUDED_FILE_TREE_CHARACTERS) {
-    throw new Error(REPOSITORY_TOO_LARGE_ERROR);
+    throw new GitHubApiError(
+      "repository_too_large",
+      REPOSITORY_TOO_LARGE_ERROR,
+    );
   }
 
   if (usePublicConditionalCache) {
@@ -369,7 +392,7 @@ async function getFileTree(
 
 class MissingReadmeError extends Error {}
 
-const MISSING_README_MESSAGE = "No README found for the specified repository.";
+const MISSING_README_MESSAGE = "未找到该仓库的 README。";
 
 async function getReadme(
   username: string,
@@ -384,16 +407,24 @@ async function getReadme(
       headers,
       MISSING_README_MESSAGE,
       signal,
+      "readme_not_found",
     );
   } catch (error) {
-    if (error instanceof Error && error.message === MISSING_README_MESSAGE) {
+    // The 404 arrives as a `GitHubRequestError` from the shared fetch helper,
+    // while an oversized or empty-body README is a plain absence; both mean
+    // "this repository has no readable README" and must not become a
+    // repository-level failure.
+    if (hasGitHubErrorCode(error, "readme_not_found")) {
       throw new MissingReadmeError(MISSING_README_MESSAGE);
     }
     throw error;
   }
 
   if (typeof data.size === "number" && data.size > MAX_README_BYTES) {
-    throw new Error(REPOSITORY_TOO_LARGE_ERROR);
+    throw new GitHubApiError(
+      "repository_too_large",
+      REPOSITORY_TOO_LARGE_ERROR,
+    );
   }
 
   if (typeof data.content !== "string" || !data.content) {
@@ -403,7 +434,10 @@ async function getReadme(
   // GitHub's contents API returns base64 with line breaks. Bound the encoded
   // payload too, so malformed metadata cannot bypass the decoded byte limit.
   if (data.content.length > MAX_README_BYTES * 2) {
-    throw new Error(REPOSITORY_TOO_LARGE_ERROR);
+    throw new GitHubApiError(
+      "repository_too_large",
+      REPOSITORY_TOO_LARGE_ERROR,
+    );
   }
 
   let readme: string;
@@ -414,7 +448,10 @@ async function getReadme(
   }
 
   if (Buffer.byteLength(readme, "utf-8") > MAX_README_BYTES) {
-    throw new Error(REPOSITORY_TOO_LARGE_ERROR);
+    throw new GitHubApiError(
+      "repository_too_large",
+      REPOSITORY_TOO_LARGE_ERROR,
+    );
   }
 
   return readme;
@@ -439,7 +476,10 @@ async function fetchGithubData(
   // private repositories. They improve public API rate limits, but they must
   // never become authorization for an anonymous caller.
   if (isPrivate && !hasCallerGithubPat) {
-    throw new Error(PRIVATE_REPOSITORY_AUTH_REQUIRED_ERROR);
+    throw new GitHubApiError(
+      "token_required",
+      PRIVATE_REPOSITORY_AUTH_REQUIRED_ERROR,
+    );
   }
 
   const [tree, readmeResult] = await Promise.all([

@@ -27,24 +27,24 @@ const sponsorCopy: Record<
   }
 > = {
   home: {
-    label: "Homepage sponsor slot",
-    body: "Reach developers before they diagram a repository.",
-    cta: "Sponsor",
+    label: "首页赞助位",
+    body: "在开发者为仓库生成图表前触达他们。",
+    cta: "赞助",
   },
   diagram: {
-    label: "Repo diagram sponsor slot",
-    body: "Reach developers while they inspect codebase architecture.",
-    cta: "Sponsor this spot",
+    label: "仓库图表赞助位",
+    body: "在开发者查看代码架构时触达他们。",
+    cta: "赞助此位置",
   },
   browse: {
-    label: "Browse catalog sponsor slot",
-    body: "Reach developers browsing public repository diagrams.",
-    cta: "Sponsor",
+    label: "浏览目录赞助位",
+    body: "触达正在浏览公开仓库图表的开发者。",
+    cta: "赞助",
   },
 };
 
 const placeholderSponsor = {
-  name: "Your company",
+  name: "你的公司",
   logoText: "YC",
 };
 
@@ -115,7 +115,7 @@ export function SponsorSlot({ surface, className }: SponsorSlotProps) {
       />
       <span className="min-w-0 flex-1">
         <span className="block text-[10px] leading-none font-black tracking-[0.16em] text-[hsl(var(--neo-soft-text))] uppercase dark:text-neutral-300">
-          {sponsor.isActive ? "Sponsored" : "Sponsor slot"}
+          {sponsor.isActive ? "已赞助" : "赞助位"}
         </span>
         <span className="mt-1 block text-sm leading-5 font-semibold text-black dark:text-neutral-100">
           <span className="font-black">{sponsor.name}</span>
@@ -155,7 +155,7 @@ export function SponsorCatalogRow() {
             />
             <span className="min-w-0">
               <span className="block text-[10px] leading-none font-black tracking-[0.16em] text-[hsl(var(--neo-soft-text))] uppercase dark:text-neutral-300">
-                {sponsor.isActive ? "Sponsored" : "Sponsor slot"}
+                {sponsor.isActive ? "已赞助" : "赞助位"}
               </span>
               <span className="mt-1 block text-base leading-tight font-black tracking-tight text-black sm:text-[1.15rem] dark:text-neutral-50">
                 {sponsor.name}

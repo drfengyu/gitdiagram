@@ -197,9 +197,7 @@ export function BrowseCatalog({
           setLoadState((current) => ({
             ...current,
             error:
-              error instanceof Error
-                ? error.message
-                : "Failed to load browse index.",
+              error instanceof Error ? error.message : "无法加载浏览索引。",
             isLoaded: true,
             showSlowIndicator: false,
           }));
@@ -268,14 +266,11 @@ export function BrowseCatalog({
     return (
       <div className="neo-panel p-8">
         <p className="text-sm font-semibold tracking-[0.2em] text-black/70 uppercase dark:text-[hsl(var(--foreground))]">
-          Browse
+          浏览
         </p>
-        <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-          Browse index unavailable
-        </h2>
+        <h2 className="mt-3 text-2xl font-bold sm:text-3xl">浏览索引不可用</h2>
         <p className="mt-4 max-w-3xl text-base text-[hsl(var(--neo-soft-text))] dark:text-neutral-300">
-          {loadError ??
-            "This page reads only the hosted browse index. The index is currently unavailable in storage."}
+          {loadError ?? "本页面仅读取托管的浏览索引。索引当前在存储中不可用。"}
         </p>
       </div>
     );
@@ -307,20 +302,20 @@ export function BrowseCatalog({
 
       {showSlowResultsIndicator && !isLoaded ? (
         <p className="text-sm text-[hsl(var(--neo-soft-text))] dark:text-neutral-300">
-          Updating results...
+          正在更新结果...
         </p>
       ) : null}
 
       {result.total === 0 ? (
         <div className="neo-panel rounded-lg px-5 py-8 text-center sm:p-10">
           <p className="text-sm font-semibold tracking-[0.2em] text-black/70 uppercase dark:text-[hsl(var(--foreground))]">
-            Browse
+            浏览
           </p>
           <h2 className="mt-3 text-2xl font-bold sm:text-3xl">
-            No diagrams match these filters
+            没有符合这些筛选条件的图表
           </h2>
           <p className="mt-4 text-base text-[hsl(var(--neo-soft-text))] dark:text-neutral-300">
-            Try a broader search or lower the minimum star filter.
+            试试更宽泛的搜索，或降低最低 Star 数筛选。
           </p>
         </div>
       ) : (

@@ -137,7 +137,7 @@ describe("POST /api/diagram-state", () => {
     expect(crossOriginResponse.status).toBe(403);
     await expect(crossOriginResponse.json()).resolves.toEqual({
       ok: false,
-      error: "Cross-origin state access is not allowed.",
+      error: "不允许跨域访问状态。",
     });
     await expect(
       POST(request({ username: "../openai", repo: "repo/name" })),
@@ -164,7 +164,7 @@ describe("POST /api/diagram-state", () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
       ok: false,
-      error: "Diagram state is temporarily unavailable.",
+      error: "图表状态暂时不可用。",
     });
     expect(String(vi.mocked(console.error).mock.calls[0]?.[0])).not.toContain(
       "private-github-token",

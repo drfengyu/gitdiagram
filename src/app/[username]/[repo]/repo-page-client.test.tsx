@@ -66,7 +66,7 @@ describe("RepoPageClient", () => {
       "false",
     );
     expect(screen.getByText("Latest regeneration failed.")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Regenerate" }));
+    fireEvent.click(screen.getByRole("button", { name: "重新生成" }));
     expect(retry).toHaveBeenCalledOnce();
   });
   it("warns when a completed diagram could not be persisted", () => {
@@ -79,7 +79,7 @@ describe("RepoPageClient", () => {
     });
     render(<RepoPageClient username="Acme" repo="Demo" />);
     expect(warningToast).toHaveBeenCalledWith(
-      "Diagram generated, but not saved",
+      "图表已生成，但未保存到服务端",
       expect.objectContaining({ description: persistenceWarning }),
     );
   });
@@ -90,14 +90,16 @@ describe("RepoPageClient", () => {
       errorCode: "RATE_LIMITED",
     });
     render(<RepoPageClient username="Acme" repo="Demo" />);
-    fireEvent.click(screen.getByRole("button", { name: /use your ai key/i }));
+    fireEvent.click(
+      screen.getByRole("button", { name: "使用你自己的 API Key" }),
+    );
     expect(openKey).toHaveBeenCalledOnce();
   });
   it("does not suggest API keys for unrelated failures", () => {
     setup({ status: "error", error: "Something went wrong." });
     render(<RepoPageClient username="Acme" repo="Demo" />);
     expect(
-      screen.queryByRole("button", { name: /use your ai key/i }),
+      screen.queryByRole("button", { name: "使用你自己的 API Key" }),
     ).not.toBeInTheDocument();
   });
   it("shows final cost within Activity", async () => {
@@ -114,20 +116,18 @@ describe("RepoPageClient", () => {
       },
     });
     render(<RepoPageClient username="Acme" repo="Demo" />);
-    expect(screen.getByRole("button", { name: "Export" })).toBeDisabled();
-    expect(
-      screen.queryByText("Estimated cost: $0.0100 USD"),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "导出" })).toBeDisabled();
+    expect(screen.queryByText("预估成本：$0.0100 USD")).not.toBeInTheDocument();
     fireEvent.click(
       await screen.findByRole("button", {
         name: "Finish rendering",
         hidden: true,
       }),
     );
-    fireEvent.click(screen.getByRole("button", { name: "Activity" }));
-    expect(
-      screen.getByRole("region", { name: "Generation activity" }),
-    ).toHaveTextContent("Estimated cost: $0.0100 USD");
+    fireEvent.click(screen.getByRole("button", { name: "活动" }));
+    expect(screen.getByRole("region", { name: "生成活动" })).toHaveTextContent(
+      "预估成本：$0.0100 USD",
+    );
   });
   it("offers GitHub access recovery and retries the current repository", () => {
     setup({
@@ -137,23 +137,23 @@ describe("RepoPageClient", () => {
     });
     render(<RepoPageClient username="Acme" repo="Demo" />);
     expect(
-      screen.getByRole("button", { name: "Add GitHub access" }),
+      screen.getByRole("button", { name: "添加 GitHub 访问" }),
     ).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: /use your ai key/i }),
+      screen.queryByRole("button", { name: "使用你自己的 API Key" }),
     ).not.toBeInTheDocument();
     expect(
-      screen.getByRole("link", { name: "Open repository on GitHub" }),
+      screen.getByRole("link", { name: "在 GitHub 中打开仓库" }),
     ).toHaveAttribute("href", "https://github.com/acme/demo");
-    fireEvent.click(screen.getByRole("button", { name: "Try again" }));
+    fireEvent.click(screen.getByRole("button", { name: "重试" }));
     expect(retry).toHaveBeenCalledOnce();
   });
   it.each([
-    ["REPOSITORY_NOT_FOUND", "Private repository?"],
-    ["GITHUB_AUTH_REQUIRED", "This repository needs GitHub access"],
-    ["GITHUB_ACCESS_DENIED", "Your token needs repository access"],
-    ["GITHUB_TOKEN_INVALID", "Update your GitHub token"],
-  ])(
+    ["REPOSITORY_NOT_FOUND", "是私有仓库吗？"],
+    ["GITHUB_AUTH_REQUIRED", "这个仓库需要 GitHub 访问权限"],
+    ["GITHUB_ACCESS_DENIED", "你的令牌缺少仓库读取权限"],
+    ["GITHUB_TOKEN_INVALID", "请更新你的 GitHub 令牌"],
+  ] as const)(
     "presents %s as an access step instead of a generation failure",
     (errorCode, title) => {
       setup({
@@ -163,14 +163,12 @@ describe("RepoPageClient", () => {
       });
       render(<RepoPageClient username="Acme" repo="Demo" />);
       expect(screen.getByRole("alert")).toHaveTextContent(title);
+      expect(screen.queryByText("无法生成图表")).not.toBeInTheDocument();
       expect(
-        screen.queryByText("Couldn’t generate the diagram"),
-      ).not.toBeInTheDocument();
-      expect(
-        screen.getByRole("button", { name: "Add GitHub access" }),
+        screen.getByRole("button", { name: "添加 GitHub 访问" }),
       ).toHaveClass(controls.actionButton!, controls.primary!);
       expect(
-        screen.getByRole("link", { name: "Open repository on GitHub" }),
+        screen.getByRole("link", { name: "在 GitHub 中打开仓库" }),
       ).toHaveClass(controls.actionButton!);
     },
   );

@@ -55,7 +55,7 @@ export function RepositoryToolbar({
           aria-controls={historyId}
           onClick={toggleHistory}
         >
-          Activity <ChevronDown size={12} aria-hidden="true" />
+          活动 <ChevronDown size={12} aria-hidden="true" />
         </button>
         <button
           type="button"
@@ -65,7 +65,7 @@ export function RepositoryToolbar({
           onClick={toggleZoom}
         >
           <Scan size={14} aria-hidden="true" />
-          {zooming ? "Exit zoom" : "Enable zoom"}
+          {zooming ? "退出缩放" : "开启缩放"}
         </button>
         <DiagramExport diagram={diagram} getSvg={getSvg} disabled={pending} />
         <button
@@ -73,14 +73,10 @@ export function RepositoryToolbar({
           type="button"
           className={`${styles.actionButton} ${styles.primary}`}
           disabled={regenerateDisabled || pending}
-          title={
-            regenerateDisabled
-              ? "Regeneration is disabled for example repositories."
-              : undefined
-          }
+          title={regenerateDisabled ? "示例仓库不支持重新生成。" : undefined}
           onClick={onRegenerate}
         >
-          <RotateCcw size={13} aria-hidden="true" /> Regenerate
+          <RotateCcw size={13} aria-hidden="true" /> 重新生成
         </button>
       </div>
     </div>

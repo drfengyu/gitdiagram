@@ -25,7 +25,7 @@ export function MermaidDiagramToolbar({
       <div className="pointer-events-auto flex items-center overflow-hidden rounded-full border border-black/10 bg-white/80 shadow-[0_10px_30px_rgba(15,23,42,0.14)] ring-1 ring-white/70 backdrop-blur-md dark:border-white/10 dark:bg-[#101722]/78 dark:shadow-[0_12px_32px_rgba(0,0,0,0.32)] dark:ring-white/10">
         <button
           type="button"
-          aria-label="Zoom out"
+          aria-label="缩小"
           disabled={!isPanZoomReady}
           className="flex h-10 w-10 items-center justify-center text-black transition-[background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-black/5 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:active:scale-100 motion-reduce:active:opacity-80 dark:text-neutral-100 dark:hover:bg-white/5"
           onClick={onZoomOut}
@@ -37,7 +37,7 @@ export function MermaidDiagramToolbar({
         </div>
         <button
           type="button"
-          aria-label="Zoom in"
+          aria-label="放大"
           disabled={!isPanZoomReady}
           className="flex h-10 w-10 items-center justify-center text-black transition-[background-color,transform] duration-150 ease-[var(--ease-out)] hover:bg-black/5 active:scale-[0.97] disabled:cursor-not-allowed disabled:opacity-50 motion-reduce:active:scale-100 motion-reduce:active:opacity-80 dark:text-neutral-100 dark:hover:bg-white/5"
           onClick={onZoomIn}
@@ -52,7 +52,7 @@ export function MermaidDiagramToolbar({
         onClick={onFit}
       >
         <ScanSearch size={16} />
-        Fit
+        适应
       </button>
     </div>
   );

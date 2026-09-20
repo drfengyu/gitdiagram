@@ -70,7 +70,7 @@ export async function parseGenerateRequest(
     return {
       success: false,
       status: 413,
-      error: "Request payload is too large.",
+      error: "请求内容过大。",
       errorCode: "PAYLOAD_TOO_LARGE",
     };
   }
@@ -82,7 +82,7 @@ export async function parseGenerateRequest(
     return {
       success: false,
       status: 400,
-      error: "Invalid request payload.",
+      error: "请求内容无效。",
       errorCode: "VALIDATION_ERROR",
     };
   }
@@ -93,7 +93,7 @@ export async function parseGenerateRequest(
     return {
       success: false,
       status: 413,
-      error: "Request payload is too large.",
+      error: "请求内容过大。",
       errorCode: "PAYLOAD_TOO_LARGE",
     };
   }
@@ -105,7 +105,7 @@ export async function parseGenerateRequest(
     return {
       success: false,
       status: 400,
-      error: "Invalid request payload.",
+      error: "请求内容无效。",
       errorCode: "VALIDATION_ERROR",
     };
   }
@@ -115,7 +115,7 @@ export async function parseGenerateRequest(
     return {
       success: false,
       status: 400,
-      error: "Invalid request payload.",
+      error: "请求内容无效。",
       errorCode: "VALIDATION_ERROR",
     };
   }

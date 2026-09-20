@@ -18,11 +18,11 @@ const DEFAULT_MODEL_FAMILY = "gpt-5.6-luna";
 const COMPLIMENTARY_QUOTA_BUCKET = "openai-complimentary-small-models";
 const QUOTA_FINALIZATION_ATTEMPTS = 2;
 const DEFAULT_DENIAL_MESSAGE =
-  "GitDiagram's free daily OpenAI capacity is used up for now. I'm a solo student engineer running this free and open source, so please try again after 00:00 UTC or use your own OpenAI API key.";
+  "GitDiagram 每天免费的 OpenAI 额度已用完。这是一个免费开源项目，由一名在校学生独立维护，请在 UTC 00:00 之后重试，或使用你自己的 OpenAI API Key。";
 const DEFAULT_PROVIDER_MISMATCH_MESSAGE =
-  "GitDiagram's complimentary-only mode requires AI_PROVIDER=openai on the default server key. I'm a solo student engineer running this free and open source, so please switch the server back to OpenAI or use your own API key.";
+  "GitDiagram 的纯免费模式要求服务端默认密钥使用 AI_PROVIDER=openai。这是一个免费开源项目，由一名在校学生独立维护，请等待服务恢复，或使用你自己的 API Key。";
 const DEFAULT_MODEL_MISMATCH_MESSAGE =
-  "GitDiagram's complimentary-only mode requires the configured complimentary model family on the default server key. Please use your own API key or try again later.";
+  "GitDiagram 的纯免费模式要求服务端默认密钥使用已配置的免费模型族。请使用你自己的 API Key，或稍后重试。";
 
 export interface ComplimentaryQuotaReservation {
   reservationId: string;

@@ -39,22 +39,21 @@ export function SponsorPageContent({ content }: { content: SponsorContent }) {
     <main className={styles.page}>
       <section className={styles.hero}>
         <h1>
-          Bring developers
+          把开发者
           <br />
-          <span>to your product.</span>
+          <span>带到你的产品</span>
         </h1>
         <p className={styles.introduction}>
-          GitDiagram had{" "}
-          <strong>{content.monthlyVisitors} tracked unique visitors</strong> in
-          the last 30 days. Reach developers as they explore GitHub
-          repositories, with placements that link directly to your website.
+          过去 30 天，GitDiagram 有{" "}
+          <strong>{content.monthlyVisitors} 名已统计的独立访客</strong>
+          。在开发者浏览 GitHub 仓库时触达他们，展示位置直接链接到你的网站。
         </p>
         <p className={styles.offerSummary}>
           <span>
-            <strong>{SPONSOR_PRICE} USD</strong> · 30 days
+            <strong>{SPONSOR_PRICE} USD</strong> · 30 天
           </span>
           <span className={styles.offerSummaryDetails}>
-            All four placements included
+            包含全部四个展示位置
           </span>
         </p>
         <div className={styles.heroActions}>
@@ -63,7 +62,7 @@ export function SponsorPageContent({ content }: { content: SponsorContent }) {
             mailto={SPONSOR_EMAIL}
           />
           <a href="#sponsor-placements" className={styles.textLink}>
-            See the placements
+            查看展示位置
             <ArrowDown aria-hidden="true" />
           </a>
         </div>
@@ -74,20 +73,19 @@ export function SponsorPageContent({ content }: { content: SponsorContent }) {
         className={styles.audience}
         aria-labelledby="audience-title"
       >
-        <h2 id="audience-title">Audience</h2>
+        <h2 id="audience-title">受众</h2>
         <div className={styles.audienceColumns}>
-          <AudienceMetrics title="Last 30 days" metrics={content.monthly} />
-          <AudienceMetrics title="Lifetime" metrics={content.lifetime} />
+          <AudienceMetrics title="过去 30 天" metrics={content.monthly} />
+          <AudienceMetrics title="历史累计" metrics={content.lifetime} />
         </div>
         <div className={styles.dataNote}>
           <p>
-            Source: PostHog and GitHub.{" "}
-            <time dateTime={content.asOf}>Updated {content.updatedAt}.</time>
+            数据来源：PostHog 和 GitHub。{" "}
+            <time dateTime={content.asOf}>更新于 {content.updatedAt}</time>
           </p>
           <p>
-            Figures refresh about every five minutes. The 30-day window ends at
-            the time shown. Visitors are unique within each window. Pageviews
-            measure site traffic, not sponsor impressions.
+            数据约每五分钟刷新一次，30 天统计窗口截至上方所示时间。
+            访客在每个窗口内独立去重；浏览量统计的是网站流量，而非赞助曝光。
           </p>
         </div>
       </section>
@@ -97,7 +95,7 @@ export function SponsorPageContent({ content }: { content: SponsorContent }) {
         id="sponsor-placements"
         aria-labelledby="placements-title"
       >
-        <h2 id="placements-title">Placements</h2>
+        <h2 id="placements-title">展示位置</h2>
         <div>
           <div className={styles.placements}>
             {content.surfaces.map((surface) => (
@@ -117,17 +115,16 @@ export function SponsorPageContent({ content }: { content: SponsorContent }) {
             ))}
           </div>
           <p className={styles.placementNote}>
-            Pageviews are from the same 30-day window.
+            浏览量来自同一个 30 天统计窗口。
           </p>
         </div>
       </section>
 
       <section className={styles.detailSection} aria-labelledby="fit-title">
         <div>
-          <h2 id="fit-title">Sponsor fit</h2>
+          <h2 id="fit-title">适合的赞助方</h2>
           <p className={styles.sectionIntro}>
-            If your customers build software, GitDiagram is a relevant place to
-            introduce your product.
+            如果你的客户在开发软件，GitDiagram 就是推介你产品的合适位置。
           </p>
         </div>
         <div>
@@ -137,8 +134,7 @@ export function SponsorPageContent({ content }: { content: SponsorContent }) {
             ))}
           </ul>
           <p className={styles.privacy}>
-            Sponsorship is clearly labeled, with no third-party ad scripts,
-            tracking pixels, or popups.
+            赞助内容有明确标注，不含第三方广告脚本、追踪像素或弹窗。
           </p>
         </div>
       </section>
@@ -150,15 +146,14 @@ export function SponsorPageContent({ content }: { content: SponsorContent }) {
       >
         <div className={styles.offerHeading}>
           <div>
-            <h2 id="offer-title">30-day sponsorship.</h2>
+            <h2 id="offer-title">30 天赞助方案</h2>
             <p className={styles.offerDescription}>
-              Your logo, a short product description, and a link to your
-              website. One fixed price covers the homepage, repository diagram
-              pages, browse catalog, and GitHub README for 30 days.
+              你的 logo、简短的产品介绍，以及指向你网站的链接。 统一价格，30
+              天内覆盖首页、仓库图表页面、仓库浏览目录和 GitHub README。
             </p>
           </div>
           <p className={styles.price}>
-            {SPONSOR_PRICE} <span>USD / 30 days</span>
+            {SPONSOR_PRICE} <span>USD / 30 天</span>
           </p>
         </div>
         <div className={styles.offerActions}>
@@ -168,13 +163,13 @@ export function SponsorPageContent({ content }: { content: SponsorContent }) {
               mailto={SPONSOR_EMAIL}
             />
             <p className={styles.availability}>
-              Available now. Email Ahmed to agree on the dates and creative.
+              现已开放。给 Ahmed 发邮件，确定投放档期与素材。
             </p>
           </div>
           <p className={styles.terms}>
-            One-time payment before launch.
+            上线前一次性付款。
             <br />
-            No automatic renewal.
+            无自动续费。
           </p>
         </div>
       </section>

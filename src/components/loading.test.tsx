@@ -16,18 +16,16 @@ afterEach(() => {
 });
 
 function openOverview() {
-  fireEvent.click(
-    screen.getByRole("button", { name: "Architecture overview" }),
-  );
+  fireEvent.click(screen.getByRole("button", { name: "架构概览" }));
 }
 
 describe("generation experience", () => {
   it("shows an accessible route loading state", () => {
     render(<Loading />);
-    expect(screen.getByRole("status")).toHaveTextContent("Loading diagram");
+    expect(screen.getByRole("status")).toHaveTextContent("正在加载图表");
     expect(screen.queryByRole("progressbar")).not.toBeInTheDocument();
     expect(screen.getByRole("status")).toHaveClass("sr-only");
-    expect(screen.queryByText("Loading diagram…")).not.toBeInTheDocument();
+    expect(screen.queryByText("正在加载图表…")).not.toBeInTheDocument();
   });
   it("keeps the saved overview optional and escapes markup", () => {
     render(
@@ -72,7 +70,7 @@ describe("generation experience", () => {
       />,
     );
     expect(pane.scrollTop).toBe(250);
-    fireEvent.click(screen.getByRole("button", { name: "Follow latest" }));
+    fireEvent.click(screen.getByRole("button", { name: "跟随最新" }));
     expect(pane.scrollTop).toBe(1000);
     expect(pageScroll).not.toHaveBeenCalled();
   });

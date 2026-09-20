@@ -201,9 +201,7 @@ export async function estimateGenerationCost(params: {
     graphStaticCount.usedFallback ||
     graphRepairStaticCount?.usedFallback
   ) {
-    noteParts.push(
-      "Some input tokens were approximated with a conservative local fallback.",
-    );
+    noteParts.push("部分输入 token 用量由本地保守估算得出。");
   }
 
   const costSummary = createEstimateCostSummary({

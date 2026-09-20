@@ -159,15 +159,12 @@ function serializeInProcessValidation<T>(
 }
 
 function createAbortError() {
-  return new DOMException(
-    "Mermaid syntax validation was aborted.",
-    "AbortError",
-  );
+  return new DOMException("Mermaid 语法校验已中止。", "AbortError");
 }
 
 function createTimeoutError(timeoutMs: number) {
   return new DOMException(
-    `Mermaid syntax validation timed out after ${timeoutMs}ms.`,
+    `Mermaid 语法校验在 ${timeoutMs} 毫秒后超时。`,
     "TimeoutError",
   );
 }
@@ -290,7 +287,7 @@ function buildServerParseDiagram(diagram: string): {
         diagram,
         issue: {
           valid: false,
-          message: "Mermaid click directive syntax is invalid.",
+          message: "Mermaid click 指令语法无效。",
           line: index + 1,
           token: "click",
         },

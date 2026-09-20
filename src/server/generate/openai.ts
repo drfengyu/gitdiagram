@@ -139,6 +139,18 @@ interface StreamCompletionResult {
   usagePromise: Promise<GenerationTokenUsage | null>;
 }
 
+/**
+ * Internal signal that the graph stage finished without a usable payload. It is
+ * a distinct type because callers must recognise it after the message has been
+ * reworded; display text is never a matching key.
+ */
+class NoParsedStructuredOutputPayloadError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = "NoParsedStructuredOutputPayloadError";
+  }
+}
+
 const NO_PARSED_STRUCTURED_PAYLOAD_ERROR =
   "Structured output parsing returned no parsed payload.";
 
@@ -157,7 +169,7 @@ function isStructuredOutputRejection(error: unknown): boolean {
     return false;
   }
 
-  if (error.message === NO_PARSED_STRUCTURED_PAYLOAD_ERROR) {
+  if (error instanceof NoParsedStructuredOutputPayloadError) {
     return true;
   }
 
@@ -429,7 +441,9 @@ export async function generateStructuredOutput<T>({
     );
 
     if (!response.output_parsed) {
-      throw new Error(NO_PARSED_STRUCTURED_PAYLOAD_ERROR);
+      throw new NoParsedStructuredOutputPayloadError(
+        NO_PARSED_STRUCTURED_PAYLOAD_ERROR,
+      );
     }
 
     const rawText =
@@ -444,9 +458,7 @@ export async function generateStructuredOutput<T>({
   } catch (error) {
     if (provider === "openrouter" && isStructuredOutputRejection(error)) {
       const message =
-        error instanceof Error
-          ? error.message
-          : "Structured output request failed.";
+        error instanceof Error ? error.message : "结构化输出请求失败。";
       throw new UpstreamProviderError(
         `OpenRouter model does not support the required structured graph output: ${message}`,
         { cause: error },

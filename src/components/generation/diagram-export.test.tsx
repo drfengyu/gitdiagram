@@ -11,7 +11,7 @@ afterEach(() => {
   vi.clearAllMocks();
 });
 function open() {
-  fireEvent.click(screen.getByRole("button", { name: "Export" }));
+  fireEvent.click(screen.getByRole("button", { name: "导出" }));
 }
 describe("diagram export", () => {
   it("announces clipboard success only after the write resolves", async () => {
@@ -30,12 +30,12 @@ describe("diagram export", () => {
       <DiagramExport diagram={"flowchart TD\nA-->B"} getSvg={() => null} />,
     );
     open();
-    fireEvent.click(screen.getByRole("button", { name: "Copy Mermaid" }));
-    expect(screen.queryByText("Mermaid copied")).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Copy Mermaid" })).toBeDisabled();
+    fireEvent.click(screen.getByRole("button", { name: "复制 Mermaid" }));
+    expect(screen.queryByText("Mermaid 已复制")).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "复制 Mermaid" })).toBeDisabled();
     resolve();
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Mermaid copied",
+      "Mermaid 已复制",
     );
     expect(writeText).toHaveBeenCalledWith("flowchart TD\nA-->B");
   });
@@ -46,21 +46,21 @@ describe("diagram export", () => {
     });
     render(<DiagramExport diagram="A-->B" getSvg={() => null} />);
     open();
-    fireEvent.click(screen.getByRole("button", { name: "Copy Mermaid" }));
+    fireEvent.click(screen.getByRole("button", { name: "复制 Mermaid" }));
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Copy failed. Try again.",
+      "复制失败，请重试。",
     );
-    expect(screen.queryByText("Mermaid copied")).not.toBeInTheDocument();
+    expect(screen.queryByText("Mermaid 已复制")).not.toBeInTheDocument();
   });
   it("exports the supplied visible diagram and reports failures", async () => {
     const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
     exportPng.mockRejectedValue(new Error("encode failed"));
     render(<DiagramExport diagram="A-->B" getSvg={() => svg} />);
     open();
-    fireEvent.click(screen.getByRole("button", { name: "Download PNG" }));
+    fireEvent.click(screen.getByRole("button", { name: "下载 PNG" }));
     expect(exportPng).toHaveBeenCalledWith(svg, expect.any(String));
     expect(await screen.findByRole("status")).toHaveTextContent(
-      "Download failed. Try again.",
+      "下载失败，请重试。",
     );
   });
 });

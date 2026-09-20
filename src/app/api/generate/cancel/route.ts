@@ -25,7 +25,7 @@ export async function POST(request: Request): Promise<Response> {
   const parsed = await parseSameOriginJsonRequest(request, {
     schema: cancellationRequestSchema,
     maxBytes: MAX_CANCELLATION_REQUEST_BYTES,
-    crossOriginError: "Cross-origin cancellation is not allowed.",
+    crossOriginError: "不允许跨域取消。",
   });
   if (!parsed.success) {
     return parsed.response;
@@ -41,10 +41,10 @@ export async function POST(request: Request): Promise<Response> {
       JSON.stringify({
         event: "generate.cancellation.write_failed",
         session_id: parsed.data.session_id,
-        error: "Cancellation could not be recorded.",
+        error: "未能记录取消请求。",
       }),
     );
-    return jsonErrorResponse("Cancellation is temporarily unavailable.", 503);
+    return jsonErrorResponse("取消服务暂时不可用。", 503);
   }
 
   return new Response(null, {

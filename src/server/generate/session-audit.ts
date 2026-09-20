@@ -1,3 +1,4 @@
+import type { GenerationErrorCode } from "~/features/diagram/error-codes";
 import type {
   GenerationCostSummary,
   GenerationStageUsage,
@@ -77,6 +78,7 @@ export function toTerminalSessionAudit(
     graph: audit.status === "failed" ? audit.graph : null,
     graphAttempts: failedGraphAttempts,
     stageUsages: [],
+    errorCode: audit.errorCode,
     validationError: audit.validationError,
     failureStage: audit.failureStage,
     compilerError: audit.compilerError,
@@ -182,7 +184,9 @@ export function withFailure(
   audit: GenerationSessionAudit,
   params: {
     failureStage: string;
+    errorCode?: GenerationErrorCode;
     validationError?: string;
+    upstreamProviderText?: boolean;
     compilerError?: string;
     renderError?: string;
   },
@@ -191,7 +195,9 @@ export function withFailure(
     ...audit,
     status: "failed",
     failureStage: params.failureStage,
+    errorCode: params.errorCode,
     validationError: params.validationError,
+    upstreamProviderText: params.upstreamProviderText,
     compilerError: params.compilerError,
     renderError: params.renderError,
     updatedAt: nowIso(),

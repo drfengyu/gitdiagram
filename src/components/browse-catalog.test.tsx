@@ -189,14 +189,14 @@ describe("BrowseCatalog", () => {
     });
     await flushPromises();
 
-    expect(screen.queryByText("Updating results...")).not.toBeInTheDocument();
+    expect(screen.queryByText("正在更新结果...")).not.toBeInTheDocument();
     expect(screen.getByText("acme/demo")).toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
 
-    expect(screen.queryByText("Updating results...")).not.toBeInTheDocument();
+    expect(screen.queryByText("正在更新结果...")).not.toBeInTheDocument();
   });
 
   it("renders server-provided results without a hydration fetch", async () => {
@@ -268,13 +268,13 @@ describe("BrowseCatalog", () => {
       await vi.advanceTimersByTimeAsync(4999);
     });
 
-    expect(screen.queryByText("Updating results...")).not.toBeInTheDocument();
+    expect(screen.queryByText("正在更新结果...")).not.toBeInTheDocument();
 
     await act(async () => {
       await vi.advanceTimersByTimeAsync(1);
     });
 
-    expect(screen.getByText("Updating results...")).toBeInTheDocument();
+    expect(screen.getByText("正在更新结果...")).toBeInTheDocument();
 
     slowResult.resolve(
       createBrowseResult([createEntry("slow-repo")], { q: "slow" }),
@@ -282,7 +282,7 @@ describe("BrowseCatalog", () => {
     await flushPromises();
 
     expect(screen.getByText("vercel/slow-repo")).toBeInTheDocument();
-    expect(screen.queryByText("Updating results...")).not.toBeInTheDocument();
+    expect(screen.queryByText("正在更新结果...")).not.toBeInTheDocument();
   });
 
   it("renders an empty state when no browse results match", async () => {
@@ -291,9 +291,9 @@ describe("BrowseCatalog", () => {
     render(<BrowseCatalog initialQuery={{}} />);
 
     expect(
-      await screen.findByText("No diagrams match these filters"),
+      await screen.findByText("没有符合这些筛选条件的图表"),
     ).toBeInTheDocument();
-    expect(screen.queryByText("Open Diagram")).not.toBeInTheDocument();
+    expect(screen.queryByText("打开图表")).not.toBeInTheDocument();
   });
 
   it("fetches server search results as the user types and removes apply/reset controls", async () => {
@@ -327,7 +327,7 @@ describe("BrowseCatalog", () => {
     expect(acmeRow.closest("tr")).not.toBeNull();
     expect(
       within(acmeRow.closest("tr")!).getByRole("link", {
-        name: "Open Diagram",
+        name: "打开图表",
       }),
     ).toHaveAttribute("href", "/acme/demo");
     await waitFor(() => {
@@ -360,10 +360,10 @@ describe("BrowseCatalog", () => {
       />,
     );
 
-    expect(await screen.findByText("Page 2 of 3")).toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Previous" }));
+    expect(await screen.findByText("第 2 页，共 3 页")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "上一页" }));
 
-    expect(await screen.findByText("Page 1 of 3")).toBeInTheDocument();
+    expect(await screen.findByText("第 1 页，共 3 页")).toBeInTheDocument();
     expect(window.location.search).toBe(
       "?q=vercel&sort=stars_desc&minStars=100",
     );
@@ -371,7 +371,7 @@ describe("BrowseCatalog", () => {
 
     expect(firstRow).not.toBeNull();
     expect(
-      within(firstRow!).getByRole("link", { name: "Open Diagram" }),
+      within(firstRow!).getByRole("link", { name: "打开图表" }),
     ).toHaveAttribute("href", "/vercel/repo-1");
     expect(screen.queryByTestId("mermaid-preview")).not.toBeInTheDocument();
   });
@@ -403,9 +403,9 @@ describe("BrowseCatalog", () => {
     render(<BrowseCatalog initialQuery={{}} />);
 
     expect(await screen.findByRole("searchbox")).toHaveValue("vercel");
-    expect(screen.getByDisplayValue("Most Stars")).toBeInTheDocument();
+    expect(screen.getByDisplayValue("Star 数最多")).toBeInTheDocument();
     expect(screen.getByDisplayValue("100+")).toBeInTheDocument();
-    expect(await screen.findByText("Page 2 of 2")).toBeInTheDocument();
+    expect(await screen.findByText("第 2 页，共 2 页")).toBeInTheDocument();
     expect(window.location.search).toBe(
       "?q=vercel&sort=stars_desc&minStars=100&page=2",
     );
@@ -439,7 +439,7 @@ describe("BrowseCatalog", () => {
       />,
     );
 
-    expect(await screen.findByText("Page 2 of 2")).toBeInTheDocument();
+    expect(await screen.findByText("第 2 页，共 2 页")).toBeInTheDocument();
   });
 
   it("opens a desktop hover preview for repository cell hover and reuses cached data", async () => {
@@ -522,7 +522,7 @@ describe("BrowseCatalog", () => {
     ).not.toBeInTheDocument();
     expect(repoRow).not.toBeNull();
     expect(
-      within(repoRow!).getByRole("link", { name: "Open Diagram" }),
+      within(repoRow!).getByRole("link", { name: "打开图表" }),
     ).toHaveAttribute("href", "/vercel/next.js");
   });
 });

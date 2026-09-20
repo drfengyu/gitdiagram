@@ -48,10 +48,10 @@ export async function generateMetadata({
     url: `${SITE_URL}${repositoryPath}/opengraph-image`,
     width: 1200,
     height: 630,
-    alt: "GitDiagram repository preview",
+    alt: "GitDiagram 仓库架构图预览",
   };
-  const title = `${username}/${repo} Diagram | GitDiagram`;
-  const description = `Interactive architecture diagram for ${username}/${repo}.`;
+  const title = `${username}/${repo} 架构图 | GitDiagram`;
+  const description = `${username}/${repo} 的可交互架构图。`;
 
   return {
     title,

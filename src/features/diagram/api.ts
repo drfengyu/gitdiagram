@@ -1,5 +1,7 @@
 import { migrateLegacyCredentialStorage } from "~/features/credentials/api";
 import { parseSSEStreamBuffer } from "~/features/diagram/sse";
+import { isGenerationErrorCode } from "~/features/diagram/error-codes";
+import type { GenerationErrorCode } from "~/features/diagram/error-codes";
 import type {
   DiagramStateResponse,
   DiagramStreamMessage,
@@ -24,9 +26,13 @@ const GENERATE_BASE_PATH = "/api/generate";
  */
 export class DiagramStreamHttpError extends Error {
   readonly status: number;
-  readonly errorCode?: string;
+  readonly errorCode?: GenerationErrorCode;
 
-  constructor(message: string, status: number, errorCode?: string) {
+  constructor(
+    message: string,
+    status: number,
+    errorCode?: GenerationErrorCode,
+  ) {
     super(message);
     this.name = "DiagramStreamHttpError";
     this.status = status;
@@ -138,10 +144,12 @@ export async function streamDiagramGeneration(
       throw new DiagramStreamHttpError(
         body?.error ??
           (response.status === 429
-            ? "Too many generation requests. Please wait and try again."
-            : "Failed to start streaming"),
+            ? "生成请求过于频繁，请稍后重试。"
+            : "启动生成流失败"),
         response.status,
-        body?.error_code,
+        // The body is attacker-influenceable (a proxy or WAF can answer for
+        // us), so the code is only trusted once it matches the known set.
+        isGenerationErrorCode(body?.error_code) ? body.error_code : undefined,
       );
     }
 
@@ -190,9 +198,7 @@ export async function streamDiagramGeneration(
       }
 
       if (!receivedTerminalEvent) {
-        throw new Error(
-          "Generation stream ended before completion. Please retry.",
-        );
+        throw new Error("生成流在完成前中断，请重试。");
       }
     } finally {
       reader.releaseLock();

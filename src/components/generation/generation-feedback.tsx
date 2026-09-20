@@ -71,17 +71,14 @@ export function GenerationFeedback({
           {title}
         </h2>
         {!failed && (
-          <span
-            className={styles.elapsed}
-            aria-label={`${seconds} seconds elapsed`}
-          >
+          <span className={styles.elapsed} aria-label={`已耗时 ${seconds} 秒`}>
             {Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}
           </span>
         )}
       </div>
       {description && <p className={styles.description}>{description}</p>}
       {hasPrevious && (
-        <p className={styles.previousLabel}>Showing previous diagram</p>
+        <p className={styles.previousLabel}>正在显示上一次的图表</p>
       )}
       {failed && recovery && <div className={styles.recovery}>{recovery}</div>}
       <ExpandedActivity key={state.startedAt ?? "stored"} state={state} />

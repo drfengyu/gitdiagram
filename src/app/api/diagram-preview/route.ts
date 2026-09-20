@@ -33,7 +33,7 @@ export async function GET(request: NextRequest) {
   });
   if (!parsed.success) {
     return NextResponse.json(
-      { error: "Invalid username or repo." },
+      { error: "用户名或仓库名无效。" },
       { status: 400, headers: { "Cache-Control": "no-store" } },
     );
   }
@@ -59,14 +59,14 @@ export async function GET(request: NextRequest) {
       }),
     );
     return NextResponse.json(
-      { error: "Preview is temporarily unavailable." },
+      { error: "预览暂时不可用。" },
       { status: 503, headers: { "Cache-Control": "no-store" } },
     );
   }
 
   if (!preview?.diagram) {
     return NextResponse.json(
-      { error: "Preview unavailable." },
+      { error: "预览不可用。" },
       { status: 404, headers: { "Cache-Control": "no-store" } },
     );
   }

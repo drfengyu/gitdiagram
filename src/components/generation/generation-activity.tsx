@@ -36,22 +36,21 @@ export function GenerationActivity({ state }: { state: DiagramStreamState }) {
         {state.sourceFileCount !== undefined && (
           <div className={styles.detailRow}>
             <FileCode2 size={14} aria-hidden="true" />
-            {state.sourceFileCount} source{" "}
-            {state.sourceFileCount === 1 ? "file" : "files"} read
+            已读取 {state.sourceFileCount} 个源文件
             <Check size={13} aria-hidden="true" />
           </div>
         )}
         {step >= 2 && state.explanation && (
           <div className={styles.detailRow}>
-            <Layers2 size={14} aria-hidden="true" /> Architecture analyzed
+            <Layers2 size={14} aria-hidden="true" /> 架构已解析
             <Check size={13} aria-hidden="true" />
           </div>
         )}
         {state.graph && (
           <div className={styles.detailRow}>
             <GitBranch size={14} aria-hidden="true" />
-            {state.graph.nodes.length} components · {state.graph.edges.length}{" "}
-            connections
+            {state.graph.nodes.length} 个组件 · {state.graph.edges.length}{" "}
+            条连接
           </div>
         )}
       </div>
@@ -76,7 +75,7 @@ export function ExpandedActivity({ state }: { state: DiagramStreamState }) {
       onToggle={(event) => setExpanded(event.currentTarget.open)}
     >
       <summary>
-        Activity <ChevronDown size={12} aria-hidden="true" />
+        活动 <ChevronDown size={12} aria-hidden="true" />
       </summary>
       <div className={styles.detailBody}>
         <GenerationActivity state={state} />

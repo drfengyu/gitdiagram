@@ -90,7 +90,7 @@ describe("parseSameOriginJsonRequest", () => {
       }),
     );
 
-    await expectFailure(result, 415, "Content-Type must be application/json.");
+    await expectFailure(result, 415, "Content-Type 必须是 application/json。");
   });
 
   it("rejects declared and actual UTF-8 payloads over the byte limit", async () => {
@@ -99,7 +99,7 @@ describe("parseSameOriginJsonRequest", () => {
         "Content-Length": "1025",
       }),
     );
-    await expectFailure(declaredTooLarge, 413, "Request payload is too large.");
+    await expectFailure(declaredTooLarge, 413, "请求内容过大。");
 
     const multibyteBody = JSON.stringify({ name: "😀" });
     const encodedLength = new TextEncoder().encode(multibyteBody).byteLength;
@@ -107,7 +107,7 @@ describe("parseSameOriginJsonRequest", () => {
       request(multibyteBody, { "Content-Length": "1" }),
       encodedLength - 1,
     );
-    await expectFailure(actualTooLarge, 413, "Request payload is too large.");
+    await expectFailure(actualTooLarge, 413, "请求内容过大。");
   });
 
   it.each([
@@ -116,7 +116,7 @@ describe("parseSameOriginJsonRequest", () => {
   ])("rejects %s", async (_label, body, status) => {
     const result = await parse(request(body));
 
-    await expectFailure(result, status, "Invalid request payload.");
+    await expectFailure(result, status, "请求内容无效。");
   });
 
   it("turns body read failures into a canonical invalid-payload response", async () => {
@@ -125,6 +125,6 @@ describe("parseSameOriginJsonRequest", () => {
 
     const result = await parse(input);
 
-    await expectFailure(result, 400, "Invalid request payload.");
+    await expectFailure(result, 400, "请求内容无效。");
   });
 });
