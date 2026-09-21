@@ -25,6 +25,7 @@ export function HeaderClient() {
   // pathname is identical on server and client for full-page loads (the proxy
   // never rewrites URLs), so these can render at SSR without mismatch risk.
   const isBrowsePage = pathname === "/browse";
+  const isHomePage = pathname === "/";
 
   return (
     <header className="border-black sm:border-b-[3px] dark:border-black">
@@ -66,7 +67,15 @@ export function HeaderClient() {
         </div>
         <nav className="hidden items-center gap-6 sm:flex">
           <Link
+            href="/"
+            aria-current={isHomePage ? "page" : undefined}
+            className="text-sm font-medium text-black transition-colors duration-150 hover:text-purple-600 dark:text-neutral-200 dark:hover:text-[hsl(var(--neo-link-hover))]"
+          >
+            首页
+          </Link>
+          <Link
             href="/browse"
+            aria-current={isBrowsePage ? "page" : undefined}
             className="text-sm font-medium text-black transition-colors duration-150 hover:text-purple-600 dark:text-neutral-200 dark:hover:text-[hsl(var(--neo-link-hover))]"
           >
             浏览
@@ -111,6 +120,15 @@ export function HeaderClient() {
               className="neo-panel mobile-menu-panel pointer-events-auto ml-auto w-full max-w-[18rem] rounded-lg p-3"
             >
               <nav className="flex flex-col gap-2">
+                {!isHomePage ? (
+                  <Link
+                    href="/"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className="browse-muted-button inline-flex min-h-[48px] items-center justify-between rounded-md px-4 py-3 text-sm font-semibold"
+                  >
+                    首页
+                  </Link>
+                ) : null}
                 {!isBrowsePage ? (
                   <Link
                     href="/browse"
