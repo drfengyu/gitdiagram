@@ -9,6 +9,8 @@ import { RepositoryWorkspace } from "~/components/generation/repository-workspac
 import { loadDiagramRenderer } from "~/components/generation/load-diagram-renderer";
 import { useDiagram } from "~/hooks/useDiagram";
 import { ApiKeyDialog } from "~/components/api-key-dialog";
+import type { SponsorPlacement } from "~/features/sponsors/types";
+
 import { Toaster } from "~/components/ui/sonner";
 import { TooltipProvider } from "~/components/ui/tooltip";
 import { isExampleRepo } from "~/lib/exampleRepos";
@@ -27,6 +29,7 @@ const PrivateReposDialog = dynamic(
 );
 
 type RepoPageClientProps = {
+  sponsor?: SponsorPlacement | null;
   username: string;
   repo: string;
   initialState?: DiagramStateResponse | null;
@@ -38,6 +41,7 @@ export default function RepoPageClient({
   repo,
   initialState = null,
   initialStateIsAuthoritative = false,
+  sponsor,
 }: RepoPageClientProps) {
   const [showGithubAccess, setShowGithubAccess] = useState(false);
   const normalizedUsername = username.toLowerCase();
@@ -80,6 +84,7 @@ export default function RepoPageClient({
     <TooltipProvider delayDuration={500} skipDelayDuration={300}>
       <main>
         <RepositoryWorkspace
+          sponsor={sponsor}
           repository={repository}
           state={state}
           loading={loading}

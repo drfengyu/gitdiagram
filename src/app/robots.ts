@@ -12,7 +12,7 @@ export default async function robots(): Promise<MetadataRoute.Robots> {
       {
         userAgent: "*",
         allow: "/",
-        disallow: ["/api/"],
+        disallow: ["/api/", "/admin/"],
       },
       {
         // Bulk repo/image crawls create disproportionate origin

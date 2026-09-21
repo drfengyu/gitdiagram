@@ -3,6 +3,8 @@ import { unstable_cache } from "next/cache";
 import { permanentRedirect } from "next/navigation";
 import { SITE_URL } from "~/lib/site";
 import { getStoredDiagramState } from "~/server/storage/artifact-store";
+import { getSponsorPlacements } from "~/server/sponsor-cache";
+
 import {
   getPublicDiagramStateCacheTag,
   getRepoPagePath,
@@ -82,6 +84,7 @@ export default async function Repo({ params }: RepoPageProps) {
     permanentRedirect(getRepoPagePath(username, repo));
   }
   const initialState = await getCachedPublicDiagramState(username, repo);
+  const sponsorPlacements = await getSponsorPlacements();
 
   return (
     <RepoPageClient
@@ -90,6 +93,7 @@ export default async function Repo({ params }: RepoPageProps) {
       repo={repo}
       initialState={initialState?.diagram ? initialState : null}
       initialStateIsAuthoritative={Boolean(initialState?.diagram)}
+      sponsor={sponsorPlacements.diagram}
     />
   );
 }

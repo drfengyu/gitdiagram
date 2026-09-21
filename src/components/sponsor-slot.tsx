@@ -1,22 +1,15 @@
 import { ArrowUpRight } from "lucide-react";
 import { cn } from "~/lib/utils";
-
-type SponsorSurface = "home" | "diagram" | "browse";
-type ActiveSponsor = {
-  name: string;
-  body: string;
-  href: string;
-  cta: string;
-  logoText?: string;
-  logoSrc?: string;
-};
+import type {
+  SponsorPlacement,
+  SponsorSurface,
+} from "~/features/sponsors/types";
 
 type SponsorSlotProps = {
   surface: SponsorSurface;
   className?: string;
+  sponsor?: SponsorPlacement | null;
 };
-
-const activeSponsor: ActiveSponsor | null = null;
 
 const sponsorCopy: Record<
   SponsorSurface,
@@ -48,17 +41,19 @@ const placeholderSponsor = {
   logoText: "YC",
 };
 
-function getSponsor(surface: SponsorSurface) {
+function getSponsor(
+  surface: SponsorSurface,
+  placement: SponsorPlacement | null | undefined,
+) {
   const copy = sponsorCopy[surface];
-  const sponsor = activeSponsor;
   return {
-    name: sponsor?.name ?? placeholderSponsor.name,
-    body: sponsor?.body ?? copy.body,
-    cta: sponsor?.cta ?? copy.cta,
-    href: sponsor?.href ?? "/sponsor",
-    logoText: sponsor?.logoText ?? placeholderSponsor.logoText,
-    logoSrc: sponsor?.logoSrc,
-    isActive: Boolean(sponsor),
+    name: placement?.name ?? placeholderSponsor.name,
+    body: placement?.body ?? copy.body,
+    cta: placement?.cta ?? copy.cta,
+    href: placement?.href ?? "/sponsor",
+    logoText: placement?.logoText ?? placeholderSponsor.logoText,
+    logoSrc: placement?.logoSrc,
+    isActive: Boolean(placement),
   };
 }
 
@@ -93,9 +88,13 @@ function linkProps(href: string) {
   };
 }
 
-export function SponsorSlot({ surface, className }: SponsorSlotProps) {
+export function SponsorSlot({
+  surface,
+  className,
+  sponsor: assigned,
+}: SponsorSlotProps) {
   const copy = sponsorCopy[surface];
-  const sponsor = getSponsor(surface);
+  const sponsor = getSponsor(surface, assigned);
 
   return (
     <a
@@ -133,9 +132,13 @@ export function SponsorSlot({ surface, className }: SponsorSlotProps) {
   );
 }
 
-export function SponsorCatalogRow() {
+export function SponsorCatalogRow({
+  sponsor: assigned,
+}: {
+  sponsor?: SponsorPlacement | null;
+}) {
   const copy = sponsorCopy.browse;
-  const sponsor = getSponsor("browse");
+  const sponsor = getSponsor("browse", assigned);
 
   return (
     <tr

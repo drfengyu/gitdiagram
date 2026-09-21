@@ -12,6 +12,8 @@ import dynamic from "next/dynamic";
 import type { DiagramStreamState } from "~/features/diagram/types";
 import { GenerationAuditPanel } from "~/components/generation-audit-panel";
 import { SponsorSlot } from "~/components/sponsor-slot";
+import type { SponsorPlacement } from "~/features/sponsors/types";
+
 import { loadDiagramRenderer } from "./load-diagram-renderer";
 import { GenerationActivity } from "./generation-activity";
 import { DiagramMetadata } from "./diagram-metadata";
@@ -24,6 +26,7 @@ import styles from "./workspace.module.css";
 const MermaidChart = dynamic(loadDiagramRenderer, { loading: () => null });
 
 export function RepositoryWorkspace({
+  sponsor,
   repository,
   state,
   loading,
@@ -43,6 +46,7 @@ export function RepositoryWorkspace({
   onRenderError: (message: string) => void;
   regenerateDisabled?: boolean;
   recovery?: ReactNode;
+  sponsor?: SponsorPlacement | null;
 }) {
   const {
     presented,
@@ -225,7 +229,13 @@ export function RepositoryWorkspace({
           <GenerationAuditPanel audit={state.latestSessionAudit} />
         </details>
       )}
-      {ready && <SponsorSlot surface="diagram" className="mt-10 mb-6" />}
+      {ready && (
+        <SponsorSlot
+          surface="diagram"
+          className="mt-10 mb-6"
+          sponsor={sponsor}
+        />
+      )}
     </section>
   );
 }

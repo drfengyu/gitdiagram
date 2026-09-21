@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Suspense } from "react";
 
 import { getCachedBrowsePage } from "~/server/browse-index-cache";
+import { getSponsorPlacements } from "~/server/sponsor-cache";
 import { BrowseCatalog } from "~/components/browse-catalog";
 import { Skeleton } from "~/components/ui/skeleton";
 import type { BrowseQuery } from "~/features/browse/catalog";
@@ -42,14 +43,16 @@ async function BrowseCatalogWithInitialData({
 }: {
   initialQuery: BrowseQuery;
 }) {
-  const initialResult = await getCachedBrowsePage(initialQuery).catch(
-    () => null,
-  );
+  const [initialResult, sponsorPlacements] = await Promise.all([
+    getCachedBrowsePage(initialQuery).catch(() => null),
+    getSponsorPlacements(),
+  ]);
 
   return (
     <BrowseCatalog
       initialQuery={initialQuery}
       initialResult={initialResult ?? undefined}
+      sponsor={sponsorPlacements.browse}
     />
   );
 }

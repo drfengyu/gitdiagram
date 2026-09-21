@@ -21,8 +21,10 @@ import {
 } from "~/components/browse-catalog-shared";
 import { SponsorCatalogRow } from "~/components/sponsor-slot";
 import { useHydrated } from "~/hooks/use-hydrated";
+import type { SponsorPlacement } from "~/features/sponsors/types";
 
 interface BrowseCatalogResultsProps {
+  sponsor?: SponsorPlacement | null;
   closeHoverPreview: () => void;
   desktopHoverEnabled: boolean;
   handlePageChange: (nextPage: number) => void;
@@ -66,6 +68,7 @@ export function BrowseCatalogResults({
   hoverPreviewElementRef,
   hoverPreviewStatus,
   result,
+  sponsor,
 }: BrowseCatalogResultsProps) {
   const showingStart =
     result.total === 0 ? 0 : (result.page - 1) * result.pageSize + 1;
@@ -175,7 +178,7 @@ export function BrowseCatalogResults({
               );
             })}
             {/* 赞助位固定在目录末尾，不插在仓库行中间 */}
-            <SponsorCatalogRow />
+            <SponsorCatalogRow sponsor={sponsor} />
           </tbody>
         </table>
       </div>

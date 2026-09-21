@@ -11,9 +11,12 @@ import { ExportDropdown } from "./export-dropdown";
 import { Switch } from "~/components/ui/switch";
 import { parseGitHubRepoUrl } from "~/features/diagram/github-url";
 import { SponsorSlot } from "~/components/sponsor-slot";
+import type { SponsorPlacement } from "~/features/sponsors/types";
+
 import type { GenerationCostSummary } from "~/features/diagram/cost";
 
 interface MainCardProps {
+  sponsor?: SponsorPlacement | null;
   isHome?: boolean;
   username?: string;
   repo?: string;
@@ -29,6 +32,7 @@ interface MainCardProps {
 }
 
 export default function MainCard({
+  sponsor,
   isHome = true,
   username,
   repo,
@@ -242,7 +246,7 @@ export default function MainCard({
                 ))}
               </div>
             </div>
-            <SponsorSlot surface="home" />
+            <SponsorSlot surface="home" sponsor={sponsor} />
           </div>
         )}
       </form>

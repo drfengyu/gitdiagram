@@ -25,11 +25,13 @@ import {
   syncBrowseUrl,
 } from "~/components/browse-catalog-shared";
 import { useBrowseHoverPreview } from "~/hooks/use-browse-hover-preview";
+import type { SponsorPlacement } from "~/features/sponsors/types";
 
 interface BrowseCatalogProps {
   initialResult?: BrowsePageResult;
   initialPreviewDiagrams?: Record<string, string>;
   initialQuery: BrowseQuery;
+  sponsor?: SponsorPlacement | null;
 }
 
 const SLOW_RESULTS_INDICATOR_DELAY_MS = 5000;
@@ -46,6 +48,7 @@ export function BrowseCatalog({
   initialResult,
   initialPreviewDiagrams,
   initialQuery,
+  sponsor,
 }: BrowseCatalogProps) {
   const normalizedInitialQuery = normalizeBrowseQuery(initialQuery);
   const [loadState, setLoadState] = useState<BrowseLoadState>({
@@ -330,6 +333,7 @@ export function BrowseCatalog({
           hoverPreviewElementRef={hoverPreviewElementRef}
           hoverPreviewStatus={hoverPreviewStatus}
           result={result}
+          sponsor={sponsor}
         />
       )}
     </div>
