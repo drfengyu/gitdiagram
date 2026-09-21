@@ -6,7 +6,9 @@ import type { GenerationTokenUsage } from "~/features/diagram/cost";
 import {
   rethrowAsUpstreamProviderError,
   UpstreamProviderError,
+  UpstreamStreamIdleTimeoutError,
 } from "~/server/generate/errors";
+import { UPSTREAM_STREAM_IDLE_MS } from "~/server/generate/generation-policy";
 import {
   getApiStyle,
   getGenerationServiceTier,
@@ -68,18 +70,29 @@ function buildRequestOptions(params: {
   provider: AIProvider;
   signal?: AbortSignal;
   clientRequestId?: string;
+  /**
+   * Stream idle watchdog signal. Composed with the caller's so that a stalled
+   * connection can be cancelled without touching the caller's own signal, which
+   * must keep reporting only cancellations and the route deadline.
+   */
+  idleSignal?: AbortSignal;
 }) {
   const headers =
     params.provider === "openai" && params.clientRequestId
       ? { "X-Client-Request-Id": params.clientRequestId }
       : undefined;
+  const signal = params.idleSignal
+    ? params.signal
+      ? AbortSignal.any([params.signal, params.idleSignal])
+      : params.idleSignal
+    : params.signal;
 
-  if (!params.signal && !headers) {
+  if (!signal && !headers) {
     return undefined;
   }
 
   return {
-    ...(params.signal ? { signal: params.signal } : {}),
+    ...(signal ? { signal } : {}),
     ...(headers ? { headers } : {}),
   };
 }
@@ -344,6 +357,107 @@ function chatExtraParams(): Record<string, unknown> {
 const CHAT_TRUNCATED_ERROR =
   "Chat completion stopped before the model finished (finish_reason=length).";
 
+type StreamRead<T> =
+  | { type: "event"; result: IteratorResult<T, void> }
+  | { type: "failure"; error: unknown }
+  | { type: "idle" };
+
+const IDLE_READ: StreamRead<never> = { type: "idle" };
+
+/**
+ * Ends a stream that stops delivering events while its connection stays open.
+ *
+ * Nothing else bounds this case. The provider client's request timeout is
+ * cleared the moment response headers arrive, so a gateway that accepts the
+ * request and then falls silent leaves the read pending until the route's own
+ * generation deadline — minutes of a request the user is told is progressing.
+ * Every event re-arms the timer, so a slow but live model is never cut off; only
+ * total silence fails, and it fails as `UpstreamStreamIdleTimeoutError`.
+ *
+ * Aborting `watchdog` is what actually breaks the stall: an async generator
+ * queues `return()` behind a `next()` that never settles, so closing the source
+ * cannot be relied on to unblock a stalled read. The watchdog signal is composed
+ * into the request, which releases the connection. It is never the caller's own
+ * signal — `signal` is only consulted to *avoid* blaming the provider for a
+ * cancellation or deadline the caller caused, since the provider client ends an
+ * aborted stream silently rather than throwing.
+ */
+async function* withStreamIdleTimeout<T>(
+  source: AsyncIterable<T>,
+  params: {
+    idleMs: number;
+    signal?: AbortSignal;
+    watchdog: AbortController;
+  },
+): AsyncGenerator<T, void, void> {
+  const iterator = source[Symbol.asyncIterator]();
+  let pendingRead: Promise<StreamRead<T>> | null = null;
+  let timer: ReturnType<typeof setTimeout> | null = null;
+
+  const readNext = () => {
+    // Memoized so a timeout never makes a second concurrent `next()` call on a
+    // single-consumption stream; the abandoned read stays handled either way.
+    pendingRead ??= (async (): Promise<StreamRead<T>> => {
+      try {
+        return { type: "event", result: await iterator.next() };
+      } catch (error) {
+        return { type: "failure", error };
+      }
+    })();
+    return pendingRead;
+  };
+
+  try {
+    while (true) {
+      let markIdle: () => void = () => undefined;
+      const idle = new Promise<StreamRead<T>>((resolve) => {
+        markIdle = () => resolve(IDLE_READ);
+      });
+      timer = setTimeout(markIdle, params.idleMs);
+      const read = await Promise.race([readNext(), idle]);
+      if (timer) {
+        clearTimeout(timer);
+        timer = null;
+      }
+
+      if (read.type === "idle") {
+        if (params.signal?.aborted) {
+          return;
+        }
+        params.watchdog.abort(
+          new DOMException("Model stream produced no events.", "AbortError"),
+        );
+        throw new UpstreamStreamIdleTimeoutError(params.idleMs);
+      }
+      pendingRead = null;
+
+      if (read.type === "failure") {
+        throw read.error;
+      }
+      if (read.result.done) {
+        return;
+      }
+      yield read.result.value;
+    }
+  } finally {
+    if (timer) {
+      clearTimeout(timer);
+    }
+    params.watchdog.abort(
+      new DOMException("Model stream reading stopped.", "AbortError"),
+    );
+    // Releasing the connection is the abort above; this only lets the provider
+    // client dispose of its reader. A source wedged in cleanup must not delay
+    // the failure the watchdog already decided on, so it is not awaited.
+    try {
+      const closing = iterator.return?.();
+      if (closing) closing.catch(() => undefined);
+    } catch {
+      // Nothing to recover from once the stream is being abandoned anyway.
+    }
+  }
+}
+
 async function streamChatCompletion(
   params: StreamCompletionParams,
 ): Promise<StreamCompletionResult> {
@@ -366,10 +480,18 @@ async function streamChatCompletion(
       : {}),
   };
 
+  // Owned by the idle watchdog below and composed into the request; a fresh one
+  // per attempt, so retrying a stalled stage never reuses an aborted signal.
+  const watchdog = new AbortController();
   const stream = await client.chat.completions
     .create(
       { ...request, ...chatExtraParams() },
-      buildRequestOptions({ provider, signal, clientRequestId }),
+      buildRequestOptions({
+        provider,
+        signal,
+        clientRequestId,
+        idleSignal: watchdog.signal,
+      }),
     )
     .catch(rethrowAsUpstreamProviderError);
 
@@ -384,7 +506,11 @@ async function streamChatCompletion(
     let finished = false;
 
     try {
-      for await (const chunk of stream) {
+      for await (const chunk of withStreamIdleTimeout(stream, {
+        idleMs: UPSTREAM_STREAM_IDLE_MS,
+        signal,
+        watchdog,
+      })) {
         const choice = chunk.choices?.[0];
         if (choice?.finish_reason) {
           if (choice.finish_reason === "length") {
@@ -502,6 +628,9 @@ export async function streamCompletion({
   }
 
   const client = createClient(provider, resolveApiKey(provider, apiKey));
+  // Owned by the idle watchdog below and composed into the request; a fresh one
+  // per attempt, so retrying a stalled stage never reuses an aborted signal.
+  const watchdog = new AbortController();
   const stream = await client.responses
     .create(
       {
@@ -537,7 +666,12 @@ export async function streamCompletion({
             }
           : {}),
       },
-      buildRequestOptions({ provider, signal, clientRequestId }),
+      buildRequestOptions({
+        provider,
+        signal,
+        clientRequestId,
+        idleSignal: watchdog.signal,
+      }),
     )
     .catch(rethrowAsUpstreamProviderError);
 
@@ -553,7 +687,11 @@ export async function streamCompletion({
     let completed = false;
 
     try {
-      for await (const event of stream) {
+      for await (const event of withStreamIdleTimeout(stream, {
+        idleMs: UPSTREAM_STREAM_IDLE_MS,
+        signal,
+        watchdog,
+      })) {
         const response = "response" in event ? event.response : undefined;
         if (response?.id) {
           responseId = response.id;

@@ -29,7 +29,11 @@ vi.mock("openai", () => ({
   },
 }));
 
-import { UpstreamProviderError } from "~/server/generate/errors";
+import {
+  UpstreamProviderError,
+  UpstreamStreamIdleTimeoutError,
+} from "~/server/generate/errors";
+import { UPSTREAM_STREAM_IDLE_MS } from "~/server/generate/generation-policy";
 import {
   generateStructuredOutput,
   streamCompletion,
@@ -39,6 +43,27 @@ async function* asAsyncEvents(events: unknown[]) {
   for (const event of events) {
     yield event;
   }
+}
+
+/**
+ * A provider stream that emits `events` and then falls silent with the
+ * connection left open, which is what a stalled gateway looks like from here: a
+ * `next()` that never settles. Like the real client, an aborted request ends the
+ * iteration silently instead of throwing.
+ */
+function asEventsThenSilence(events: unknown[], signal?: AbortSignal) {
+  return (async function* () {
+    for (const event of events) {
+      yield event;
+    }
+    await new Promise<void>((resolve) => {
+      if (signal?.aborted) {
+        resolve();
+        return;
+      }
+      signal?.addEventListener("abort", () => resolve(), { once: true });
+    });
+  })();
 }
 
 async function consume(stream: AsyncGenerator<string, void, void>) {
@@ -65,7 +90,18 @@ function completedEvents(text = "done") {
 beforeEach(() => {
   vi.clearAllMocks();
 });
-afterEach(() => vi.unstubAllEnvs());
+afterEach(() => {
+  vi.unstubAllEnvs();
+  vi.useRealTimers();
+});
+
+/**
+ * A streaming request always carries a signal, because that is how the idle
+ * watchdog cancels a connection that stops producing events.
+ */
+const streamRequestOptions = expect.objectContaining({
+  signal: expect.any(AbortSignal),
+});
 
 describe("OpenAI Responses text verbosity", () => {
   it("requests Fast for both managed stages and retains the tier actually served", async () => {
@@ -80,7 +116,7 @@ describe("OpenAI Responses text verbosity", () => {
     await consume(stream.stream);
     expect(openAiMocks.responsesCreate).toHaveBeenCalledWith(
       expect.objectContaining({ service_tier: "priority" }),
-      undefined,
+      streamRequestOptions,
     );
     openAiMocks.responsesParse.mockResolvedValue({
       output_parsed: { ok: true },
@@ -104,7 +140,7 @@ describe("OpenAI Responses text verbosity", () => {
   });
   it("bounds costly requests and attaches a production correlation id", async () => {
     openAiMocks.responsesCreate.mockResolvedValue(completedEvents());
-    const signal = new AbortController().signal;
+    const caller = new AbortController();
 
     const result = await streamCompletion({
       provider: "openai",
@@ -112,9 +148,24 @@ describe("OpenAI Responses text verbosity", () => {
       systemPrompt: "system",
       userPrompt: "user",
       apiKey: "sk-test",
-      signal,
+      signal: caller.signal,
       clientRequestId: "session:explanation",
     });
+
+    const requestOptions = openAiMocks.responsesCreate.mock.calls[0]?.[1] as {
+      signal: AbortSignal;
+      headers: Record<string, string>;
+    };
+    expect(requestOptions.headers).toEqual({
+      "X-Client-Request-Id": "session:explanation",
+    });
+    // The request signal is the caller's composed with the stream idle watchdog,
+    // so a cancellation still reaches the provider client while a stalled
+    // connection stays cancellable without aborting the caller's own signal.
+    expect(requestOptions.signal).not.toBe(caller.signal);
+    expect(requestOptions.signal.aborted).toBe(false);
+    caller.abort();
+    expect(requestOptions.signal.aborted).toBe(true);
 
     await consume(result.stream);
     expect(openAiMocks.responsesCreate.mock.calls[0]?.[0]).not.toHaveProperty(
@@ -122,13 +173,6 @@ describe("OpenAI Responses text verbosity", () => {
     );
     expect(openAiMocks.clientOptions).toHaveBeenCalledWith(
       expect.objectContaining({ maxRetries: 0, timeout: 150_000 }),
-    );
-    expect(openAiMocks.responsesCreate).toHaveBeenCalledWith(
-      expect.objectContaining({ service_tier: "default" }),
-      {
-        signal,
-        headers: { "X-Client-Request-Id": "session:explanation" },
-      },
     );
   });
 
@@ -150,7 +194,7 @@ describe("OpenAI Responses text verbosity", () => {
     });
     expect(openAiMocks.responsesCreate).toHaveBeenCalledWith(
       expect.objectContaining({ text: { verbosity: "low" } }),
-      undefined,
+      streamRequestOptions,
     );
   });
 
@@ -604,5 +648,221 @@ describe("Chat Completions gateway transport", () => {
         userPrompt: "user",
       }),
     ).rejects.toThrow("AI_CHAT_EXTRA_PARAMS must be a JSON object.");
+  });
+});
+
+/**
+ * A gateway can accept the request, send one event and then keep the connection
+ * open in silence. The provider client cannot bound that — its request timeout is
+ * cleared as soon as response headers arrive — so without a watchdog the stage
+ * holds the request until the route's 220s generation deadline while the user is
+ * told the run is still progressing.
+ */
+describe("upstream stream idle watchdog", () => {
+  const CHAT_START = { choices: [{ index: 0, delta: { content: "hello" } }] };
+  const RESPONSES_START = {
+    type: "response.output_text.delta",
+    delta: "hello",
+  };
+
+  function stallChatTransport(events: unknown[]) {
+    let requestSignal: AbortSignal | undefined;
+    openAiMocks.chatCompletionsCreate.mockImplementation(
+      async (_body: unknown, options?: { signal?: AbortSignal }) => {
+        requestSignal = options?.signal;
+        return asEventsThenSilence(events, options?.signal);
+      },
+    );
+    return () => requestSignal;
+  }
+
+  function stallResponsesTransport(events: unknown[]) {
+    let requestSignal: AbortSignal | undefined;
+    openAiMocks.responsesCreate.mockImplementation(
+      async (_body: unknown, options?: { signal?: AbortSignal }) => {
+        requestSignal = options?.signal;
+        return asEventsThenSilence(events, options?.signal);
+      },
+    );
+    return () => requestSignal;
+  }
+
+  it("fails a stalled Chat Completions stream at the idle bound", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-gateway-test");
+    vi.stubEnv("AI_API_STYLE", "chat");
+    vi.useFakeTimers();
+    const sentSignal = stallChatTransport([CHAT_START]);
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3-30b-a3b-fp8",
+      systemPrompt: "system",
+      userPrompt: "user",
+    });
+    let failure: unknown;
+    const consumed = consume(result.stream).catch((error: unknown) => {
+      failure = error;
+    });
+
+    // Well inside the bound: a slow model that is still producing events must be
+    // left running rather than cut off.
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(vi.getTimerCount()).toBe(1);
+    expect(failure).toBeUndefined();
+
+    await vi.advanceTimersByTimeAsync(UPSTREAM_STREAM_IDLE_MS);
+    await consumed;
+
+    expect(failure).toBeInstanceOf(UpstreamStreamIdleTimeoutError);
+    expect((failure as UpstreamStreamIdleTimeoutError).idleMs).toBe(
+      UPSTREAM_STREAM_IDLE_MS,
+    );
+    // The stalled connection is cancelled on the way out, and the stage reports
+    // no measured usage so its cost stays an estimate.
+    expect(sentSignal()?.aborted).toBe(true);
+    await expect(result.usagePromise).resolves.toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("fails a stalled Responses stream at the idle bound", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-managed-test");
+    vi.stubEnv("AI_API_STYLE", "responses");
+    vi.useFakeTimers();
+    const sentSignal = stallResponsesTransport([RESPONSES_START]);
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: "gpt-5.6-terra",
+      systemPrompt: "system",
+      userPrompt: "user",
+    });
+    let failure: unknown;
+    const consumed = consume(result.stream).catch((error: unknown) => {
+      failure = error;
+    });
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(vi.getTimerCount()).toBe(1);
+    expect(failure).toBeUndefined();
+
+    await vi.advanceTimersByTimeAsync(UPSTREAM_STREAM_IDLE_MS);
+    await consumed;
+
+    expect(failure).toBeInstanceOf(UpstreamStreamIdleTimeoutError);
+    expect(sentSignal()?.aborted).toBe(true);
+    await expect(result.usagePromise).resolves.toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("keeps a stream that is still producing events off the watchdog", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-gateway-test");
+    vi.stubEnv("AI_API_STYLE", "chat");
+    vi.useFakeTimers();
+    openAiMocks.chatCompletionsCreate.mockResolvedValue(
+      asAsyncEvents(GATEWAY_CHUNKS),
+    );
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3-30b-a3b-fp8",
+      systemPrompt: "system",
+      userPrompt: "user",
+    });
+
+    expect(await consume(result.stream)).toEqual(['{"ok":tr', "ue}"]);
+    await expect(result.usagePromise).resolves.toMatchObject({
+      inputTokens: 10,
+      outputTokens: 5,
+    });
+    // Every read leaves no timer behind, so a completed stage cannot be
+    // failed by a watchdog firing later.
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("reports a cancellation during a stall as a cancellation, not an idle timeout", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-gateway-test");
+    vi.stubEnv("AI_API_STYLE", "chat");
+    vi.useFakeTimers();
+    stallChatTransport([CHAT_START]);
+    const caller = new AbortController();
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3-30b-a3b-fp8",
+      systemPrompt: "system",
+      userPrompt: "user",
+      signal: caller.signal,
+    });
+    let failure: unknown;
+    const consumed = consume(result.stream).catch((error: unknown) => {
+      failure = error;
+    });
+
+    await vi.advanceTimersByTimeAsync(1_000);
+    expect(failure).toBeUndefined();
+    caller.abort();
+    await vi.advanceTimersByTimeAsync(1_000);
+    await consumed;
+
+    // The caller ended the run, so the stream simply stops; the route keeps
+    // classifying that as a cancellation instead of a provider fault.
+    expect(failure).not.toBeInstanceOf(UpstreamStreamIdleTimeoutError);
+    expect(failure).toBeInstanceOf(UpstreamProviderError);
+    await expect(result.usagePromise).resolves.toBeNull();
+    expect(vi.getTimerCount()).toBe(0);
+  });
+
+  it("cancels the connection and settles usage when the consumer stops reading", async () => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-gateway-test");
+    vi.stubEnv("AI_API_STYLE", "chat");
+    const sentSignal = stallChatTransport([CHAT_START]);
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3-30b-a3b-fp8",
+      systemPrompt: "system",
+      userPrompt: "user",
+    });
+    const reading = result.stream[Symbol.asyncIterator]();
+
+    expect(await reading.next()).toMatchObject({ value: "hello" });
+    await reading.return?.();
+
+    await expect(result.usagePromise).resolves.toBeNull();
+    expect(sentSignal()?.aborted).toBe(true);
+  });
+
+  it("looks up usage after a completed stream on the caller's own signal", async () => {
+    // A watchdog abort must never be mistaken for the caller's cancellation, so
+    // the follow-up request keeps the caller's signal rather than the composed
+    // one the stalled stream was read with.
+    vi.stubEnv("OPENAI_API_KEY", "sk-managed-test");
+    vi.stubEnv("AI_API_STYLE", "responses");
+    openAiMocks.responsesCreate.mockResolvedValue(
+      asAsyncEvents([
+        { type: "response.output_text.delta", delta: "done" },
+        { type: "response.completed", response: { id: "resp_test" } },
+      ]),
+    );
+    openAiMocks.responsesRetrieve.mockResolvedValue({
+      usage: { input_tokens: 10, output_tokens: 5, total_tokens: 15 },
+    });
+    const caller = new AbortController();
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: "gpt-5.6-terra",
+      systemPrompt: "system",
+      userPrompt: "user",
+      signal: caller.signal,
+    });
+    expect(await consume(result.stream)).toEqual(["done"]);
+
+    await expect(result.usagePromise).resolves.toMatchObject({
+      totalTokens: 15,
+    });
+    const retrieveOptions = openAiMocks.responsesRetrieve.mock.calls[0]?.[2] as
+      { signal?: AbortSignal } | undefined;
+    expect(retrieveOptions?.signal).toBe(caller.signal);
   });
 });

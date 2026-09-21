@@ -24,11 +24,40 @@ export class UpstreamProviderError extends Error {
   }
 }
 
+/**
+ * Display text for a stalled upstream stream. Built from the idle bound alone:
+ * this message is shown to the client *and* persisted into the shared session
+ * audit, so it must never contain anything read off the connection.
+ */
+export function upstreamStreamIdleMessage(idleMs: number): string {
+  return `AI 服务商 ${Math.round(idleMs / 1000)} 秒没有返回任何内容，连接已断开，请重试。`;
+}
+
+/**
+ * The upstream connection stayed open but stopped delivering events. Raised by
+ * the streaming transport's idle watchdog so a stalled model fails after a bound
+ * it can state up front, instead of holding the request until the route's own
+ * deadline expires.
+ *
+ * A distinct type for the same reason as `UpstreamProviderError`: classification
+ * keys off it, never off its text. Its message is app-authored, so it is *not*
+ * provider text and must survive unchanged for a caller-supplied key.
+ */
+export class UpstreamStreamIdleTimeoutError extends Error {
+  constructor(readonly idleMs: number) {
+    super(upstreamStreamIdleMessage(idleMs));
+    this.name = "UpstreamStreamIdleTimeoutError";
+  }
+}
+
 export function rethrowAsUpstreamProviderError(error: unknown): never {
   // Cancellation and the route deadline are the app's own control flow, so they
   // must reach the route unchanged rather than be reported as provider faults.
+  // So does the idle watchdog: it is already an app-authored, code-classified
+  // failure, and laundering it here would tag its text as provider text.
   if (
     error instanceof UpstreamProviderError ||
+    error instanceof UpstreamStreamIdleTimeoutError ||
     (error instanceof DOMException &&
       (error.name === "AbortError" || error.name === "TimeoutError"))
   ) {
@@ -133,6 +162,17 @@ export function normalizeGenerationError(params: {
     return {
       message: DEFAULT_OPENAI_KEY_QUOTA_EXHAUSTED_ERROR,
       errorCode: "DEFAULT_OPENAI_KEY_QUOTA_EXHAUSTED",
+    };
+  }
+
+  // A stalled stream is the app's own bounded failure, not provider text, so it
+  // keeps the same message for a managed key and a caller-supplied one, and the
+  // shared audit records it without the provider-text flag. `GENERATION_TIMEOUT`
+  // is already on the wire, so no client needs a new code to show it.
+  if (params.error instanceof UpstreamStreamIdleTimeoutError) {
+    return {
+      message: upstreamStreamIdleMessage(params.error.idleMs),
+      errorCode: "GENERATION_TIMEOUT",
     };
   }
 

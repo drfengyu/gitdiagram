@@ -1,17 +1,29 @@
 import { describe, expect, it } from "vitest";
 
+import { isGenerationErrorCode } from "~/features/diagram/error-codes";
 import {
   BYOK_UPSTREAM_ERROR_DISPLAY_PREFIX,
   BYOK_UPSTREAM_ERROR_PREFIX,
   normalizeGenerationError,
   redactUpstreamProviderTextForSharedRecord,
+  rethrowAsUpstreamProviderError,
   UpstreamProviderError,
+  UpstreamStreamIdleTimeoutError,
 } from "./errors";
 import { GitHubApiError } from "./github-errors";
 import { REPOSITORY_TOO_LARGE_ERROR } from "./github";
 
 const RATE_LIMIT_MESSAGE =
   "Rate limit reached for gpt-5.6-terra in organization org-abc123def on tokens per min (TPM): Limit 30000.";
+
+function thrownBy(run: () => unknown): unknown {
+  try {
+    run();
+  } catch (error) {
+    return error;
+  }
+  throw new Error("Expected the call to throw.");
+}
 
 describe("normalizeGenerationError", () => {
   it("passes the repository size error through with its own code", () => {
@@ -102,6 +114,56 @@ describe("normalizeGenerationError", () => {
 
     expect(normalized.errorCode).toBe("REPOSITORY_NOT_FOUND");
     expect(normalized.message).toContain("GitHub 访问");
+  });
+
+  it("classifies a stalled stream as a bounded timeout, never as provider text", () => {
+    // The watchdog's message is app-authored, so a caller using their own key
+    // and the shared session audit have to show the identical text.
+    const error = new UpstreamStreamIdleTimeoutError(45_000);
+
+    expect(
+      normalizeGenerationError({
+        provider: "openai",
+        message: error.message,
+        error,
+      }),
+    ).toEqual({ message: error.message, errorCode: "GENERATION_TIMEOUT" });
+
+    const byok = normalizeGenerationError({
+      provider: "openai",
+      apiKey: "sk-caller-key",
+      message: error.message,
+      error,
+    });
+    expect(byok).toEqual({
+      message: error.message,
+      errorCode: "GENERATION_TIMEOUT",
+    });
+    expect(
+      redactUpstreamProviderTextForSharedRecord(
+        byok.message,
+        byok.upstreamProviderText,
+      ),
+    ).toBe(error.message);
+  });
+
+  it("states the idle bound in app-authored text and keeps its own type", () => {
+    const error = new UpstreamStreamIdleTimeoutError(45_000);
+
+    expect(error.message).toContain("45");
+    expect(error.message).not.toContain("org-abc123def");
+    // Wrapping it would retag the text as provider text and change its code.
+    expect(thrownBy(() => rethrowAsUpstreamProviderError(error))).toBe(error);
+  });
+
+  it("reports the stall with a code the client already understands", () => {
+    const { errorCode } = normalizeGenerationError({
+      provider: "openai",
+      message: new UpstreamStreamIdleTimeoutError(45_000).message,
+      error: new UpstreamStreamIdleTimeoutError(45_000),
+    });
+
+    expect(isGenerationErrorCode(errorCode)).toBe(true);
   });
 });
 
