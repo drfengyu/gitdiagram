@@ -4,12 +4,13 @@ import type { GenerationCostSummary } from "~/features/diagram/cost";
 import { useHydrated } from "~/hooks/use-hydrated";
 import styles from "./workspace.module.css";
 
-const generatedTimeFormatter = new Intl.DateTimeFormat("en", {
+const generatedTimeFormatter = new Intl.DateTimeFormat("zh-CN", {
   month: "short",
   day: "numeric",
   year: "numeric",
   hour: "numeric",
   minute: "2-digit",
+  hour12: false,
 });
 
 // The browser's timezone is only known after hydration. Keep the server's

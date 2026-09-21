@@ -18,8 +18,7 @@ export default function HomePage() {
         <div className="mx-auto mt-5 max-w-[22rem] space-y-2 text-center text-[1.0625rem] leading-6 text-balance text-[hsl(var(--neo-soft-text))] sm:mt-12 sm:max-w-2xl sm:text-lg sm:leading-normal">
           <p>输入任意 GitHub 仓库地址，生成可交互的架构图。</p>
           <p className="hidden sm:block">
-            也可以把任意 GitHub 网址里的 &apos;hub&apos; 换成
-            &apos;diagram&apos；。
+            也可以把任意 GitHub 网址里的「hub」换成「diagram」。
           </p>
         </div>
       </div>
