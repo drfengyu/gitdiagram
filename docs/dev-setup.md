@@ -59,6 +59,13 @@ Optional browser analytics:
 
 - `NEXT_PUBLIC_POSTHOG_KEY`
 
+Optional sponsor management:
+
+- `SPONSOR_ADMIN_TOKEN` unlocks the hidden editor at `/admin/sponsors`. Generate
+  one with `openssl rand -hex 32`. Without it every request to
+  `/api/admin/sponsors` is rejected and the three sponsor slots keep showing the
+  placeholder.
+
 The default OpenAI configuration is:
 
 ```dotenv
