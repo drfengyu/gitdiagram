@@ -106,13 +106,12 @@ export function BrowseCatalogResults({
             </tr>
           </thead>
           <tbody className="block lg:table-row-group">
-            {result.items.map((item, index) => {
+            {result.items.map((item) => {
               const diagramPath = `/${encodeURIComponent(item.username)}/${encodeURIComponent(item.repo)}`;
               const githubPath = `https://github.com/${item.username}/${item.repo}`;
 
               return (
                 <Fragment key={`${item.username}/${item.repo}`}>
-                  {index === 1 && <SponsorCatalogRow />}
                   <tr className="block border-b border-black/15 align-middle last:border-b-0 lg:table-row dark:border-white/10">
                     <td
                       className="block p-0 lg:table-cell"
@@ -175,6 +174,8 @@ export function BrowseCatalogResults({
                 </Fragment>
               );
             })}
+            {/* 赞助位固定在目录末尾，不插在仓库行中间 */}
+            <SponsorCatalogRow />
           </tbody>
         </table>
       </div>
