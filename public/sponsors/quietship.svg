@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Quietship">
+  <rect width="64" height="64" rx="12" fill="#facc15" />
+  <path d="M12 40c6-7 10-7 16 0s10 7 16 0" fill="none" stroke="#0f0c05" stroke-width="4" stroke-linecap="round" />
+  <path d="M32 12v18" stroke="#0f0c05" stroke-width="4" stroke-linecap="round" />
+  <path d="M24 20h16" stroke="#0f0c05" stroke-width="4" stroke-linecap="round" />
+</svg>
