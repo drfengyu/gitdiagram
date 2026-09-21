@@ -29,7 +29,7 @@ export class UpstreamProviderError extends Error {
  * this message is shown to the client *and* persisted into the shared session
  * audit, so it must never contain anything read off the connection.
  */
-export function upstreamStreamIdleMessage(idleMs: number): string {
+function upstreamStreamIdleMessage(idleMs: number): string {
   return `AI 服务商 ${Math.round(idleMs / 1000)} 秒没有返回任何内容，连接已断开，请重试。`;
 }
 
