@@ -1,6 +1,6 @@
 import type { SponsorStats } from "~/server/sponsor-stats";
 
-export const SPONSOR_EMAIL_ADDRESS = "ahmedkhaleel2004@gmail.com";
+export const SPONSOR_EMAIL_ADDRESS = "drfengling@163.com";
 export const SPONSOR_EMAIL = `mailto:${SPONSOR_EMAIL_ADDRESS}?subject=${encodeURIComponent("GitDiagram 赞助广告位")}`;
 export const SPONSOR_PRICE = "$949";
 export const sponsorFits = [

@@ -27,7 +27,7 @@ export function SponsorEmailActions({
     <div className={styles.contactActions}>
       <a href={mailto} className={`neo-button ${styles.contactPrimary}`}>
         <Mail aria-hidden="true" />
-        发邮件给 Ahmed
+        发邮件给 Mr.Albert
       </a>
       <button
         type="button"

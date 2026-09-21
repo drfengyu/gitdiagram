@@ -27,4 +27,4 @@ function resolveSiteUrl(): string {
 }
 
 export const SITE_URL = resolveSiteUrl();
-export const GITHUB_REPO_URL = "https://github.com/ahmedkhaleel2004/gitdiagram";
+export const GITHUB_REPO_URL = "https://github.com/drfengyu/gitdiagram";

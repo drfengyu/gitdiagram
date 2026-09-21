@@ -35,15 +35,10 @@ export const metadata: Metadata = {
     "系统架构图生成",
     "GitHub 可视化工具",
     "架构图在线生成",
-    "ahmedkhaleel2004",
-    "ahmed khaleel",
     "gitdiagram",
-    "gitdiagram.com",
   ],
-  authors: [
-    { name: "Ahmed Khaleel", url: "https://github.com/ahmedkhaleel2004" },
-  ],
-  creator: "Ahmed Khaleel",
+  authors: [{ name: "Mr.Albert", url: "https://github.com/drfengyu" }],
+  creator: "Mr.Albert",
   openGraph: {
     type: "website",
     locale: "zh_CN",
@@ -56,7 +51,6 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: "GitDiagram - 几秒把仓库变成架构图",
     description: "输入任意 GitHub 仓库地址，生成可交互的架构图。",
-    creator: "@ahmedkhaleel2004",
   },
   robots: {
     index: true,

@@ -3,6 +3,7 @@ import "server-only";
 import { unstable_cache } from "next/cache";
 import { z } from "zod";
 import { getGitHubApiHeaders } from "~/server/github-auth";
+import { SITE_URL } from "~/lib/site";
 
 const CACHE_SECONDS = 5 * 60;
 const count = z.number().int().nonnegative();
@@ -47,10 +48,18 @@ const VERIFIED_SNAPSHOT: SponsorStats = {
 
 async function refreshSponsorStats(): Promise<SponsorStats> {
   const apiKey = process.env.POSTHOG_PERSONAL_API_KEY?.trim();
-  const projectId = process.env.POSTHOG_PROJECT_ID?.trim() || "113380";
-  if (!apiKey || !/^\d+$/.test(projectId)) {
+  // No default project: falling back to someone else's project id would serve
+  // their traffic as if it were this deployment's.
+  const projectId = process.env.POSTHOG_PROJECT_ID?.trim();
+  if (!apiKey || !projectId || !/^\d+$/.test(projectId)) {
     throw new Error("Sponsor analytics credentials are not configured.");
   }
+
+  // Track this deployment, not the project it was forked from.
+  const siteHost = new URL(SITE_URL).host;
+  const siteHosts = siteHost.startsWith("www.")
+    ? [siteHost, siteHost.slice(4)]
+    : [siteHost, `www.${siteHost}`];
 
   const cutoff = Math.floor(Date.now() / 1000);
   const end = `toDateTime(${cutoff}, 'UTC')`;
@@ -69,7 +78,7 @@ async function refreshSponsorStats(): Promise<SponsorStats> {
     toUnixTimestamp(min(timestamp))
     FROM events
     WHERE event = '$pageview'
-      AND properties.$host IN ('gitdiagram.com', 'www.gitdiagram.com')
+      AND properties.$host IN (${siteHosts.map((host) => `'${host}'`).join(", ")})
       AND timestamp < ${end}`;
 
   const [posthog, github] = await Promise.all([
@@ -87,7 +96,7 @@ async function refreshSponsorStats(): Promise<SponsorStats> {
       signal: AbortSignal.timeout(25_000),
     }),
     getGitHubApiHeaders().then((headers) =>
-      fetch("https://api.github.com/repos/ahmedkhaleel2004/gitdiagram", {
+      fetch("https://api.github.com/repos/drfengyu/gitdiagram", {
         headers,
         cache: "no-store",
         signal: AbortSignal.timeout(10_000),

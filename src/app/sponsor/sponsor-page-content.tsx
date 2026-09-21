@@ -163,7 +163,7 @@ export function SponsorPageContent({ content }: { content: SponsorContent }) {
               mailto={SPONSOR_EMAIL}
             />
             <p className={styles.availability}>
-              现已开放。给 Ahmed 发邮件，确定投放档期与素材。
+              现已开放。给 Mr.Albert 发邮件，确定投放档期与素材。
             </p>
           </div>
           <p className={styles.terms}>

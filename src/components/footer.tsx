@@ -7,10 +7,10 @@ export function Footer() {
         <span className="text-base font-medium text-black sm:text-sm dark:text-neutral-100">
           制作者：{" "}
           <Link
-            href="https://ahmedkhaleel.com"
+            href="https://github.com/drfengyu"
             className="neo-link hover:underline"
           >
-            Ahmed Khaleel
+            Mr.Albert
           </Link>
           <span className="mx-2 text-black dark:text-neutral-100">/</span>
           <Link href="/sponsor" className="neo-link hover:underline">
