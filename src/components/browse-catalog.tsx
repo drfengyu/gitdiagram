@@ -194,10 +194,10 @@ export function BrowseCatalog({
           if (slowIndicatorTimeoutId !== null) {
             window.clearTimeout(slowIndicatorTimeoutId);
           }
+          console.error("Browse index load failed:", error);
           setLoadState((current) => ({
             ...current,
-            error:
-              error instanceof Error ? error.message : "无法加载浏览索引。",
+            error: "无法加载浏览索引，请稍后重试。",
             isLoaded: true,
             showSlowIndicator: false,
           }));

@@ -197,6 +197,20 @@ describe("browse diagram storage", () => {
     ).toBeLessThan(storageMocks.putGzipJsonObject.mock.invocationCallOrder[1]!);
   });
 
+  it("creates the first index when no browse object exists yet", async () => {
+    const entries = await upsertBrowseIndexEntry({
+      username: "acme",
+      repo: "demo",
+      lastSuccessfulAt: "2026-03-28T12:00:00.000Z",
+      stargazerCount: 42,
+    });
+
+    expect(entries.map(({ username, repo }) => `${username}/${repo}`)).toEqual([
+      "acme/demo",
+    ]);
+    await expect(getBrowsePage({})).resolves.toMatchObject({ total: 1 });
+  });
+
   it("reads the committed snapshot without consulting legacy objects", async () => {
     seedAtomicIndex([
       {

@@ -412,6 +412,8 @@ async function writeBrowseIndex(
 
 async function materializePendingBrowseIndex(params: {
   generation: string;
+  // Migrator-only. Producers must be allowed to create the first index, or a
+  // bucket that never had one can never write one.
   requireExistingIndex?: boolean;
 }): Promise<BrowseIndexEntry[]> {
   const [stored, pending] = await Promise.all([
@@ -461,7 +463,6 @@ export async function upsertBrowseIndexEntry(
         callback: () =>
           materializePendingBrowseIndex({
             generation: randomUUID(),
-            requireExistingIndex: true,
           }),
       });
     } catch (error) {
@@ -487,7 +488,6 @@ export async function drainPendingBrowseIndex(): Promise<number> {
         callback: () =>
           materializePendingBrowseIndex({
             generation: randomUUID(),
-            requireExistingIndex: true,
           }),
       });
       return entries.length;

@@ -83,7 +83,7 @@ async function fetchBrowsePage(
   }
 
   if (!response.ok) {
-    throw new Error(`Failed to load browse index (${response.status}).`);
+    throw new Error(`加载浏览索引失败（HTTP ${response.status}）。`);
   }
 
   return (await response.json()) as BrowsePageResult;
