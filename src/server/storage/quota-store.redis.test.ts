@@ -1,5 +1,5 @@
 // @vitest-environment node
-import { spawn, type ChildProcess } from "node:child_process";
+import { spawn, spawnSync, type ChildProcess } from "node:child_process";
 import { once } from "node:events";
 import { createServer } from "node:net";
 import { randomUUID } from "node:crypto";
@@ -19,6 +19,7 @@ import {
 const SCRIPT_TTL_SECONDS = 3 * 24 * 60 * 60;
 const NOW_MS = 1_774_000_000_000;
 const CONNECT_TIMEOUT_MS = 5_000;
+const CONNECT_ATTEMPT_TIMEOUT_MS = 1_500;
 const runId = randomUUID();
 
 let redisProcess: ChildProcess | null = null;
@@ -42,19 +43,36 @@ async function findAvailablePort(): Promise<number> {
   return address.port;
 }
 
+// node-redis keeps connect() pending forever against an unreachable port, so
+// each attempt needs its own bound to keep beforeAll inside the hook timeout.
 async function connectWithRetry(url: string) {
   const deadline = Date.now() + CONNECT_TIMEOUT_MS;
   let lastError: unknown;
 
   while (Date.now() < deadline) {
-    const client = createClient({ url });
+    const client = createClient({
+      url,
+      socket: {
+        connectTimeout: CONNECT_ATTEMPT_TIMEOUT_MS,
+        reconnectStrategy: false,
+      },
+    });
     client.on("error", () => undefined);
     try {
-      await client.connect();
+      await Promise.race([
+        client.connect(),
+        delay(CONNECT_ATTEMPT_TIMEOUT_MS + 500).then(() => {
+          throw new Error(`Redis connect attempt timed out for ${url}`);
+        }),
+      ]);
       return client;
     } catch (error) {
       lastError = error;
-      client.destroy();
+      try {
+        await client.destroy();
+      } catch {
+        // v6 throws synchronously when destroying a never-connected client.
+      }
       await delay(50);
     }
   }
@@ -108,6 +126,23 @@ async function startRedisForTests(): Promise<string> {
   });
 
   return `redis://127.0.0.1:${port}`;
+}
+
+// A missing local redis-server binary is an environment gap, not a code
+// failure, so the suite skips outside CI. An explicit REDIS_TEST_URL (and CI
+// itself) must still fail loudly instead of hiding a broken dependency.
+function localRedisTestServerMissing(): boolean {
+  if (process.env.REDIS_TEST_URL?.trim() || process.env.CI) return false;
+  return Boolean(
+    spawnSync("redis-server", ["--version"], { stdio: "ignore" }).error,
+  );
+}
+
+const redisAvailable = !localRedisTestServerMissing();
+if (!redisAvailable) {
+  console.warn(
+    "[quota-store.redis.test] Skipped: no redis-server binary found. Install Redis or set REDIS_TEST_URL to run the quota Lua semantics tests.",
+  );
 }
 
 function quotaKey(label: string): string {
@@ -171,6 +206,7 @@ async function markQuotaStarted(params: {
 }
 
 beforeAll(async () => {
+  if (!redisAvailable) return;
   const redisUrl = await startRedisForTests();
   redisClient = await connectWithRetry(redisUrl);
 });
@@ -197,7 +233,7 @@ afterAll(async () => {
   }
 });
 
-describe("quota Lua semantics", () => {
+describe.skipIf(!redisAvailable)("quota Lua semantics", () => {
   it("keeps duplicate admission for one reservation id idempotent", async () => {
     const key = quotaKey("duplicate-admission");
 

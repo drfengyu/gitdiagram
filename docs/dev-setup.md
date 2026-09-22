@@ -109,6 +109,13 @@ bun run build
 
 The test suite includes real Mermaid parser contract tests for the deterministic graph compiler, API route tests, cancellation and quota tests, storage concurrency tests, and browser-rendering safety tests.
 
+One suite (`src/server/storage/quota-store.redis.test.ts`) exercises the quota Lua scripts against a real Redis. CI provides a Redis service and sets `REDIS_TEST_URL`; the suite skips itself locally when neither a `redis-server` binary nor `REDIS_TEST_URL` is available. To run it locally:
+
+```bash
+docker run -d -p 6379:6379 redis:7-alpine
+REDIS_TEST_URL=redis://127.0.0.1:6379 bun run test src/server/storage/quota-store.redis.test.ts
+```
+
 ## Deploy
 
 The primary deployment is Vercel with Bun as both the package manager and the server runtime for Route Handlers. The route-level `runtime = "nodejs"` declarations select Next.js's server runtime rather than Edge; the project-level `bunVersion` setting makes Vercel execute those Functions with Bun. Add the variables from `.env.example` to the Vercel project, then deploy:
