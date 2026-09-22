@@ -51,6 +51,7 @@ export default function MainCard({
   const [activeDropdown, setActiveDropdown] = useState<"export" | null>(null);
   const [advancedOpen, setAdvancedOpen] = useState(false);
   const [gatewayModels, setGatewayModels] = useState<string[] | null>(null);
+  const [gatewayError, setGatewayError] = useState(false);
   const [selectedModel, setSelectedModel] = useState("");
   const gatewayFetchStarted = useRef(false);
   const router = useRouter();
@@ -60,6 +61,7 @@ export default function MainCard({
   const loadGatewayModels = useCallback(() => {
     if (gatewayFetchStarted.current) return;
     gatewayFetchStarted.current = true;
+    setGatewayError(false);
     fetch("/api/gateway/models", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
       .then((data: { models?: unknown } | null) => {
@@ -67,10 +69,13 @@ export default function MainCard({
           setGatewayModels(
             data.models.filter((m): m is string => typeof m === "string"),
           );
+        } else {
+          throw new Error("Malformed model catalog.");
         }
       })
       .catch(() => {
-        // Leave the section on its empty state; generation still works default.
+        gatewayFetchStarted.current = false;
+        setGatewayError(true);
       });
   }, []);
 
@@ -190,7 +195,19 @@ export default function MainCard({
                 >
                   生成模型
                 </label>
-                {gatewayModels === null ? (
+                {gatewayError ? (
+                  <p className="text-sm text-gray-600 dark:text-neutral-400">
+                    模型列表加载失败。
+                    <button
+                      type="button"
+                      onClick={loadGatewayModels}
+                      className="ml-1 font-semibold underline underline-offset-2 hover:text-black dark:hover:text-neutral-100"
+                    >
+                      重试
+                    </button>
+                    ，或先生成，将使用默认模型。
+                  </p>
+                ) : gatewayModels === null ? (
                   <p className="text-sm text-gray-600 dark:text-neutral-400">
                     正在加载模型列表…
                   </p>
