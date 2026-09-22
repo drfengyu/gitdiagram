@@ -1,7 +1,7 @@
 "use client";
 
 import styles from "./repository-toolbar.module.css";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { Input } from "~/components/ui/input";
@@ -57,8 +57,8 @@ export default function MainCard({
   const isExampleRepoSelected =
     !isHome && !!username && !!repo && isExampleRepo(username, repo);
 
-  const loadGatewayModels = () => {
-    if (gatewayModels !== null || gatewayFetchStarted.current) return;
+  const loadGatewayModels = useCallback(() => {
+    if (gatewayFetchStarted.current) return;
     gatewayFetchStarted.current = true;
     fetch("/api/gateway/models", { credentials: "same-origin" })
       .then((response) => (response.ok ? response.json() : null))
@@ -72,7 +72,13 @@ export default function MainCard({
       .catch(() => {
         // Leave the section on its empty state; generation still works default.
       });
-  };
+  }, []);
+
+  // Prefetch while the visitor types instead of when they expand the panel, so
+  // the selector opens from an already-warm browser and function cache.
+  useEffect(() => {
+    if (isHome) loadGatewayModels();
+  }, [isHome, loadGatewayModels]);
 
   useEffect(() => {
     if (username && repo) {

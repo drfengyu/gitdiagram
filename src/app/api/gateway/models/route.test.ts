@@ -31,7 +31,7 @@ describe("GET /api/gateway/models", () => {
     expect(body).toMatchObject({ ok: true, models: [] });
   });
 
-  it("serves the allowlist ∩ gateway catalog with a key portal", async () => {
+  it("seeds with the allowlist, then serves the intersection after the background refresh", async () => {
     process.env.GATEWAY_BASE_URL = "https://gateway.example/v1";
     process.env.GATEWAY_MODEL_ALLOWLIST = "@cf/a,@cf/removed";
     vi.spyOn(globalThis, "fetch").mockImplementation(async () =>
@@ -40,13 +40,18 @@ describe("GET /api/gateway/models", () => {
     vi.resetModules();
     const { GET } = await import("~/app/api/gateway/models/route");
 
-    const response = await GET(request());
-    const body = (await response.json()) as {
+    const seeded = (await (await GET(request())).json()) as {
       models: string[];
       key_portal_url: string | null;
     };
-    expect(body.models).toEqual(["@cf/a"]);
-    expect(body.key_portal_url).toBe("https://gateway.example/keys");
+    expect(seeded.models).toEqual(["@cf/a", "@cf/removed"]);
+    expect(seeded.key_portal_url).toBe("https://gateway.example/keys");
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+    const refreshed = (await (await GET(request())).json()) as {
+      models: string[];
+    };
+    expect(refreshed.models).toEqual(["@cf/a"]);
   });
 
   it("rejects cross-origin requests", async () => {

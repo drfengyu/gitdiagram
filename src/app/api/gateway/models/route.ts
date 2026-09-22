@@ -24,7 +24,7 @@ export async function GET(request: Request) {
     );
   }
 
-  const catalog = await getGatewayCatalog();
+  const catalog = getGatewayCatalog();
   return NextResponse.json(
     {
       ok: true,
@@ -33,7 +33,9 @@ export async function GET(request: Request) {
     },
     {
       headers: {
-        "Cache-Control": "no-store",
+        // The selector refetches at most this often per browser; the origin
+        // request itself never blocks on the gateway after the first one.
+        "Cache-Control": "private, max-age=30",
         "X-Content-Type-Options": "nosniff",
       },
     },

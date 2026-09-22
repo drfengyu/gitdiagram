@@ -15,7 +15,7 @@ export interface GatewayCatalog {
 }
 
 let cache: GatewayCatalog | null = null;
-let inflight: Promise<GatewayCatalog> | null = null;
+let inflight: Promise<void> | null = null;
 
 function getKeyPortalUrl(baseUrl: string): string | null {
   try {
@@ -85,25 +85,40 @@ async function fetchCatalog(
  * The allowlist ∩ gateway catalog for the selector UI. Request validation never
  * consults this: an id only needs the allowlist plus the caller's own key, so a
  * slow or failing catalog can shrink the dropdown without locking anyone out.
+ *
+ * Deliberately never blocks: a cold or stale instance serves the raw allowlist
+ * (which the operator curates to exist on the gateway) and refreshes the
+ * intersection in the background, so opening the selector costs one function
+ * invocation instead of a gateway round trip.
  */
-export async function getGatewayCatalog(): Promise<GatewayCatalog | null> {
+export function getGatewayCatalog(): GatewayCatalog | null {
   const baseUrl = getGatewayBaseUrl();
   const allowlist = parseGatewayAllowlist();
   if (!baseUrl || allowlist.length === 0) {
     return null;
   }
 
-  if (cache && Date.now() - cache.fetchedAt < MODELS_CACHE_TTL_MS) {
+  if (cache) {
+    if (Date.now() - cache.fetchedAt >= MODELS_CACHE_TTL_MS) {
+      refreshInBackground(baseUrl, allowlist);
+    }
     return cache;
   }
 
+  refreshInBackground(baseUrl, allowlist);
+  return {
+    models: allowlist,
+    keyPortalUrl: getKeyPortalUrl(baseUrl),
+    fetchedAt: Date.now() - MODELS_CACHE_TTL_MS + CATALOG_RETRY_MS,
+  };
+}
+
+function refreshInBackground(baseUrl: string, allowlist: string[]): void {
   inflight ??= fetchCatalog(baseUrl, allowlist)
     .then((next) => {
       cache = next;
-      return next;
     })
     .finally(() => {
       inflight = null;
     });
-  return inflight;
 }
