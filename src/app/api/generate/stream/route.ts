@@ -64,13 +64,12 @@ import {
 } from "~/server/generate/graph-planner";
 import {
   getGenerationServiceTier,
-  getModel,
   getProvider,
   shouldUseExactInputTokenCount,
   usesSinglePassArchitecture,
 } from "~/server/generate/model-config";
 import { withSlowRequestRetry } from "~/server/generate/slow-request-retry";
-import { streamCompletion } from "~/server/generate/openai";
+import { estimateTokens, streamCompletion } from "~/server/generate/openai";
 import {
   SYSTEM_FIRST_PROMPT,
   SYSTEM_ARCHITECTURE_PROMPT,
@@ -131,6 +130,8 @@ export async function POST(request: Request) {
   const {
     username,
     repo,
+    model,
+    gateway,
     apiKey,
     githubPat,
     sessionId,
@@ -288,9 +289,10 @@ export async function POST(request: Request) {
             message: "正在获取仓库数据…",
           });
           const provider = getProvider();
-          const model = getModel(provider);
           audit = { ...audit, provider, model };
-          assertModelPricingAvailable(model);
+          if (!gateway) {
+            assertModelPricingAvailable(model);
+          }
 
           console.info(
             JSON.stringify({
@@ -403,53 +405,65 @@ export async function POST(request: Request) {
             unavailableSourceCount: sources.unavailableCount,
           };
           const estimateStartedAt = performance.now();
-          const appliesComplimentaryGate = shouldApplyComplimentaryGate({
-            provider,
-            apiKey,
-          });
-          estimate = await estimateGenerationCost({
-            provider,
-            model,
-            analysisModel,
-            sourceFiles: sources.text,
-            fileTree: context.fileTree,
-            readme: context.readme,
-            username,
-            repo,
-            apiKey,
-            preferExactInputTokenCount: shouldUseExactInputTokenCount({
+          const appliesComplimentaryGate =
+            !gateway &&
+            shouldApplyComplimentaryGate({
               provider,
               apiKey,
-            }),
-            signal: generationAbortController.signal,
-            clientRequestId: `${audit.sessionId}:estimate`,
-            includeGraphRepairInputTokens: appliesComplimentaryGate,
-          });
-          recordTiming("estimate", estimateStartedAt);
-          const tokenCount = estimate.explanationInputTokens;
-
-          audit = withStageUsage(
-            withEstimatedCost(
-              {
-                ...audit,
-                provider,
-                model,
-              },
-              estimate.costSummary,
-            ),
-            {
-              stage: "estimate",
+            });
+          let tokenCount: number;
+          if (!gateway) {
+            estimate = await estimateGenerationCost({
+              provider,
               model,
-              costSummary: estimate.costSummary,
-              createdAt: new Date().toISOString(),
-            },
-          );
+              analysisModel,
+              sourceFiles: sources.text,
+              fileTree: context.fileTree,
+              readme: context.readme,
+              username,
+              repo,
+              apiKey,
+              preferExactInputTokenCount: shouldUseExactInputTokenCount({
+                provider,
+                apiKey,
+              }),
+              signal: generationAbortController.signal,
+              clientRequestId: `${audit.sessionId}:estimate`,
+              includeGraphRepairInputTokens: appliesComplimentaryGate,
+            });
+            tokenCount = estimate.explanationInputTokens;
+
+            audit = withStageUsage(
+              withEstimatedCost(
+                {
+                  ...audit,
+                  provider,
+                  model,
+                },
+                estimate.costSummary,
+              ),
+              {
+                stage: "estimate",
+                model,
+                costSummary: estimate.costSummary,
+                createdAt: new Date().toISOString(),
+              },
+            );
+          } else {
+            // A gateway model is billed by the gateway against the caller's own
+            // console balance, so there is no USD estimate to produce. The
+            // local input-size guard still has to run.
+            tokenCount = estimateTokens(
+              `${context.fileTree}\n${context.readme}\n${sources.text}`,
+            );
+          }
+          recordTiming("estimate", estimateStartedAt);
 
           send({
             status: "started",
             session_id: audit.sessionId,
             message: "正在启动生成流程…",
-            cost_summary: estimate.costSummary,
+            ...(estimate ? { cost_summary: estimate.costSummary } : {}),
           });
 
           throwIfAborted(generationAbortController.signal);
@@ -477,7 +491,7 @@ export async function POST(request: Request) {
           let complimentaryEstimate: ComplimentaryAdmissionEstimate | null =
             null;
           if (appliesComplimentaryGate) {
-            if (estimate.graphRepairStaticInputTokens === null) {
+            if (!estimate || estimate.graphRepairStaticInputTokens === null) {
               throw new Error("免费额度估算缺少图规划修复输入。");
             }
             complimentaryEstimate = {
@@ -561,7 +575,8 @@ export async function POST(request: Request) {
           if (quotaReservation) {
             await markComplimentaryQuotaStarted(quotaReservation);
           }
-          const explanationInputTokens = estimate.explanationInputTokens;
+          const explanationInputTokens =
+            estimate?.explanationInputTokens ?? tokenCount;
           const explanationStartedAt = performance.now();
           let recordedFirstExplanationChunk = false;
           await withSlowRequestRetry({
@@ -640,6 +655,7 @@ export async function POST(request: Request) {
                   source_files: sources.text,
                 }),
                 apiKey,
+                gateway,
                 reasoningEffort: singlePass
                   ? ARCHITECTURE_REASONING_EFFORT
                   : EXPLANATION_REASONING_EFFORT,
@@ -696,18 +712,20 @@ export async function POST(request: Request) {
               if (explanationUsage) {
                 accounting.actualUsages.push(explanationUsage);
                 accounting.pendingModelRequestTokenEstimate = 0;
-                audit = withStageUsage(audit, {
-                  stage: "explanation",
-                  attempt,
-                  model: analysisModel,
-                  costSummary: createCostSummary({
-                    kind: "actual",
+                if (!gateway) {
+                  audit = withStageUsage(audit, {
+                    stage: "explanation",
+                    attempt,
                     model: analysisModel,
-                    usage: explanationUsage,
-                    approximate: false,
-                  }),
-                  createdAt: new Date().toISOString(),
-                });
+                    costSummary: createCostSummary({
+                      kind: "actual",
+                      model: analysisModel,
+                      usage: explanationUsage,
+                      approximate: false,
+                    }),
+                    createdAt: new Date().toISOString(),
+                  });
+                }
               } else {
                 accounting.hasCompleteMeasuredUsage = false;
                 accounting.completedUnmeasuredTokenEstimate +=
@@ -739,6 +757,7 @@ export async function POST(request: Request) {
             provider,
             model,
             apiKey,
+            gateway,
             sessionId: audit.sessionId,
             explanation,
             initialGraph: architecture
@@ -809,16 +828,21 @@ export async function POST(request: Request) {
             diagram,
           });
 
-          const finalCost = createFinalGenerationCostSummary({
-            model,
-            estimate,
-            actualUsages: accounting.actualUsages,
-            stageUsages: audit.stageUsages,
-            hasCompleteMeasuredUsage: accounting.hasCompleteMeasuredUsage,
-            graphAttemptCount: audit.graphAttempts.length,
-          });
+          const finalCost =
+            estimate && !gateway
+              ? createFinalGenerationCostSummary({
+                  model,
+                  estimate,
+                  actualUsages: accounting.actualUsages,
+                  stageUsages: audit.stageUsages,
+                  hasCompleteMeasuredUsage: accounting.hasCompleteMeasuredUsage,
+                  graphAttemptCount: audit.graphAttempts.length,
+                })
+              : null;
           throwIfAborted(generationAbortController.signal);
-          audit = withFinalCost(audit, finalCost);
+          if (finalCost) {
+            audit = withFinalCost(audit, finalCost);
+          }
           audit = withSuccess(
             withTimelineEvent(audit, "complete", "图表生成完成。"),
           );

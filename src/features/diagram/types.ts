@@ -65,6 +65,8 @@ export interface DiagramStreamMessage {
 export interface StreamGenerationParams {
   username: string;
   repo: string;
+  /** Operator-allowlisted gateway model id; the server rejects anything else. */
+  model?: string;
   signal?: AbortSignal;
 }
 

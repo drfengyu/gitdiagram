@@ -63,6 +63,7 @@ export function useDiagram(
   repo: string,
   initialState?: DiagramStateResponse | null,
   initialStateIsAuthoritative = false,
+  model?: string,
 ) {
   const [loading, setLoading] = useState<boolean>(
     !Boolean(initialState?.diagram),
@@ -144,6 +145,7 @@ export function useDiagram(
     {
       username,
       repo,
+      model,
       onComplete: onStreamComplete,
       initialState: toInitialStreamState(initialState),
     },

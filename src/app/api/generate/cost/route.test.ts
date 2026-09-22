@@ -181,6 +181,71 @@ describe("POST /api/generate/cost", () => {
     expect(mocks.consumeInfrastructureRateLimit).toHaveBeenCalledOnce();
   });
 
+  function gatewayRequest(body: Record<string, unknown>) {
+    return new Request("https://gitdiagram.com/api/generate/cost", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Origin: "https://gitdiagram.com",
+        "Sec-Fetch-Site": "same-origin",
+      },
+      body: JSON.stringify(body),
+    });
+  }
+
+  it("short-circuits estimation with gateway_billed for an allowlisted gateway model", async () => {
+    process.env.GATEWAY_BASE_URL = "https://gateway.example/v1";
+    process.env.GATEWAY_MODEL_ALLOWLIST = "@cf/meta/llama-3.1-8b-instruct";
+    mocks.resolveRequestCredentials.mockResolvedValueOnce({
+      apiKey: "caller-console-key",
+    });
+
+    try {
+      const response = await POST(
+        gatewayRequest({
+          username: "openai",
+          repo: "openai-node",
+          model: "@cf/meta/llama-3.1-8b-instruct",
+        }),
+      );
+
+      const body = (await response.json()) as Record<string, unknown>;
+      expect(response.status).toBe(200);
+      expect(body).toMatchObject({
+        ok: true,
+        model: "@cf/meta/llama-3.1-8b-instruct",
+        gateway_billed: true,
+      });
+      expect(mocks.getGithubData).not.toHaveBeenCalled();
+      expect(mocks.estimateCost).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.GATEWAY_BASE_URL;
+      delete process.env.GATEWAY_MODEL_ALLOWLIST;
+    }
+  });
+
+  it("rejects a gateway model without the caller's own key", async () => {
+    process.env.GATEWAY_BASE_URL = "https://gateway.example/v1";
+    process.env.GATEWAY_MODEL_ALLOWLIST = "@cf/meta/llama-3.1-8b-instruct";
+
+    try {
+      const response = await POST(
+        gatewayRequest({
+          username: "openai",
+          repo: "openai-node",
+          model: "@cf/meta/llama-3.1-8b-instruct",
+        }),
+      );
+
+      const body = (await response.json()) as Record<string, unknown>;
+      expect(response.status).toBe(400);
+      expect(body.error_code).toBe("GATEWAY_MODEL_KEY_REQUIRED");
+    } finally {
+      delete process.env.GATEWAY_BASE_URL;
+      delete process.env.GATEWAY_MODEL_ALLOWLIST;
+    }
+  });
+
   it("does not echo raw upstream failure text to the caller", async () => {
     vi.spyOn(console, "error").mockImplementation(() => undefined);
     mocks.getGithubData.mockRejectedValue(

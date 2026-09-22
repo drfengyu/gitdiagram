@@ -127,6 +127,7 @@ export async function streamDiagramGeneration(
       body: JSON.stringify({
         username: params.username,
         repo: params.repo,
+        ...(params.model ? { model: params.model } : {}),
         session_id: sessionId,
         cancel_token: cancelToken,
       }),

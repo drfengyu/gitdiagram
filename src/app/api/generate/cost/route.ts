@@ -15,8 +15,8 @@ import {
   modelMatchesComplimentaryFamily,
 } from "~/server/generate/complimentary-gate";
 import { getGithubData } from "~/server/generate/github";
+import { resolveEffectiveModel } from "~/server/generate/gateway-config";
 import {
-  getModel,
   getProvider,
   shouldUseExactInputTokenCount,
 } from "~/server/generate/model-config";
@@ -98,6 +98,38 @@ export async function POST(request: Request) {
       githubPat: parsed.data.github_pat,
     });
 
+    const provider = getProvider();
+    const modelResolution = resolveEffectiveModel({
+      provider,
+      requestedModel: parsed.data.model,
+      apiKey,
+    });
+    if (!modelResolution.ok) {
+      return jsonResponse(
+        {
+          ok: false,
+          error: modelResolution.error,
+          error_code: modelResolution.errorCode,
+        },
+        { status: modelResolution.status, requestId },
+      );
+    }
+    if (modelResolution.gateway) {
+      // The gateway bills the caller's own console balance, so there is no
+      // USD estimate for GitDiagram to make (and no reason to spend the
+      // caller's GitHub API budget assembling one).
+      return jsonResponse(
+        {
+          ok: true,
+          model: modelResolution.model,
+          gateway_billed: true,
+          message: "该模型的费用由 Cloudflare AI 控制台按其计价计量。",
+        },
+        { requestId },
+      );
+    }
+    const model = modelResolution.model;
+
     const rateLimit = await consumeGenerationInfrastructureRateLimit({
       clientIp: getClientIp(request),
     });
@@ -114,8 +146,6 @@ export async function POST(request: Request) {
         { status: 429, requestId },
       );
     }
-    const provider = getProvider();
-    const model = getModel(provider);
     assertModelPricingAvailable(model);
 
     if (isComplimentaryGateEnabled() && !apiKey) {

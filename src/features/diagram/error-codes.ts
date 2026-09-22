@@ -29,6 +29,8 @@ const GENERATION_ERROR_CODES = [
   "API_KEY_REQUIRED",
   // Provider and model
   "MODEL_PRICING_UNAVAILABLE",
+  "GATEWAY_MODEL_NOT_AVAILABLE",
+  "GATEWAY_MODEL_KEY_REQUIRED",
   "STREAM_FAILED",
   /**
    * The caller's own key produced the upstream error. Distinct from

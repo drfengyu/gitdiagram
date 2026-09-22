@@ -27,6 +27,7 @@ const generateRequestSchema = z
   .strictObject({
     username: githubUsernameSchema,
     repo: githubRepoSchema,
+    model: z.string().trim().min(1).max(256).optional(),
     api_key: credentialSchema.optional(),
     github_pat: credentialSchema.optional(),
     session_id: generationSessionIdSchema.optional(),

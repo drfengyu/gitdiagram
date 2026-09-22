@@ -37,6 +37,7 @@ export function isApiKeyCtaErrorCode(
     case "COMPLIMENTARY_GATE_PROVIDER_MISMATCH":
     case "COMPLIMENTARY_GATE_MODEL_MISMATCH":
     case "API_KEY_REQUIRED":
+    case "GATEWAY_MODEL_KEY_REQUIRED":
       return true;
     default:
       return false;

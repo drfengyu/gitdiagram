@@ -3,6 +3,7 @@ import { zodResponseFormat, zodTextFormat } from "openai/helpers/zod";
 import type { ZodType } from "zod";
 
 import type { GenerationTokenUsage } from "~/features/diagram/cost";
+import type { GatewayModelResolution } from "~/server/generate/gateway-config";
 import {
   rethrowAsUpstreamProviderError,
   UpstreamProviderError,
@@ -48,7 +49,22 @@ function getOpenRouterHeaders(): Record<string, string> {
   return headers;
 }
 
-function createClient(provider: AIProvider, apiKey: string): OpenAI {
+function createClient(
+  provider: AIProvider,
+  apiKey: string,
+  gateway?: GatewayModelResolution | null,
+): OpenAI {
+  if (gateway) {
+    // Model-selection gateways only ever speak Chat Completions, so the client
+    // is built here rather than consulting the operator's AI_API_STYLE.
+    return new OpenAI({
+      apiKey,
+      baseURL: gateway.baseUrl,
+      maxRetries: AI_MAX_RETRIES,
+      timeout: AI_REQUEST_TIMEOUT_MS,
+    });
+  }
+
   if (provider === "openrouter") {
     return new OpenAI({
       apiKey,
@@ -127,6 +143,7 @@ interface StreamCompletionParams {
   systemPrompt: string;
   userPrompt: string;
   apiKey?: string;
+  gateway?: GatewayModelResolution | null;
   reasoningEffort?: ReasoningEffort;
   textVerbosity?: TextVerbosity;
   outputSchema?: ZodType;
@@ -142,6 +159,7 @@ interface StructuredCompletionParams<T> {
   schema: ZodType<T>;
   schemaName: string;
   apiKey?: string;
+  gateway?: GatewayModelResolution | null;
   reasoningEffort?: ReasoningEffort;
   textVerbosity?: TextVerbosity;
   signal?: AbortSignal;
@@ -462,7 +480,11 @@ async function streamChatCompletion(
   params: StreamCompletionParams,
 ): Promise<StreamCompletionResult> {
   const { provider, signal, clientRequestId } = params;
-  const client = createClient(provider, resolveApiKey(provider, params.apiKey));
+  const client = createClient(
+    provider,
+    resolveApiKey(provider, params.apiKey),
+    params.gateway,
+  );
   const request: OpenAI.ChatCompletionCreateParamsStreaming = {
     model: params.model,
     messages: buildMessages(params.systemPrompt, params.userPrompt),
@@ -555,7 +577,11 @@ async function generateStructuredChatOutput<T>(
   params: StructuredCompletionParams<T>,
 ): Promise<{ output: T; rawText: string; usage: GenerationTokenUsage | null }> {
   const { provider, signal, clientRequestId } = params;
-  const client = createClient(provider, resolveApiKey(provider, params.apiKey));
+  const client = createClient(
+    provider,
+    resolveApiKey(provider, params.apiKey),
+    params.gateway,
+  );
   const request: OpenAI.ChatCompletionCreateParamsNonStreaming = {
     model: params.model,
     messages: buildMessages(params.systemPrompt, params.userPrompt),
@@ -608,19 +634,21 @@ export async function streamCompletion({
   systemPrompt,
   userPrompt,
   apiKey,
+  gateway,
   reasoningEffort,
   textVerbosity,
   outputSchema,
   signal,
   clientRequestId,
 }: StreamCompletionParams): Promise<StreamCompletionResult> {
-  if (provider === "openai" && getApiStyle(provider) === "chat") {
+  if (gateway || (provider === "openai" && getApiStyle(provider) === "chat")) {
     return streamChatCompletion({
       provider,
       model,
       systemPrompt,
       userPrompt,
       apiKey,
+      gateway,
       outputSchema,
       signal,
       clientRequestId,
@@ -827,7 +855,10 @@ export async function generateStructuredOutput<T>(
     clientRequestId,
   } = params;
 
-  if (provider === "openai" && getApiStyle(provider) === "chat") {
+  if (
+    params.gateway ||
+    (provider === "openai" && getApiStyle(provider) === "chat")
+  ) {
     return generateStructuredChatOutput(params);
   }
 

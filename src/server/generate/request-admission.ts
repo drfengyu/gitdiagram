@@ -2,6 +2,11 @@ import { randomUUID } from "node:crypto";
 
 import { registerActiveGeneration } from "./cancellation";
 import {
+  resolveEffectiveModel,
+  type GatewayModelResolution,
+} from "./gateway-config";
+import { getProvider } from "./model-config";
+import {
   consumeGenerationInfrastructureRateLimit,
   consumeGenerationRateLimit,
   getGenerationInfrastructureRateLimitMessage,
@@ -16,6 +21,8 @@ import { resolveRequestCredentials } from "~/server/http/request-credentials";
 interface AdmittedGenerationRequest {
   username: string;
   repo: string;
+  model: string;
+  gateway: GatewayModelResolution | null;
   apiKey?: string;
   githubPat?: string;
   sessionId: string;
@@ -82,6 +89,7 @@ export async function admitGenerationRequest(
   const {
     username,
     repo,
+    model: requestedModel,
     session_id: requestedSessionId,
     cancel_token: cancelToken,
   } = parsed.data;
@@ -89,6 +97,20 @@ export async function admitGenerationRequest(
     apiKey: parsed.data.api_key,
     githubPat: parsed.data.github_pat,
   });
+  const modelResolution = resolveEffectiveModel({
+    provider: getProvider(),
+    requestedModel,
+    apiKey,
+  });
+  if (!modelResolution.ok) {
+    return {
+      admitted: false,
+      response: jsonError(
+        { error: modelResolution.error, errorCode: modelResolution.errorCode },
+        { status: modelResolution.status },
+      ),
+    };
+  }
   const clientIp = getClientIp(request);
   const infrastructureRateLimit =
     await consumeGenerationInfrastructureRateLimit({ clientIp });
@@ -204,6 +226,8 @@ export async function admitGenerationRequest(
     value: {
       username,
       repo,
+      model: modelResolution.model,
+      gateway: modelResolution.gateway,
       apiKey,
       githubPat,
       sessionId,

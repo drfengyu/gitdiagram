@@ -117,6 +117,31 @@ describe("streamDiagramGeneration", () => {
       expect.objectContaining({ status: "complete" }),
     );
   });
+  it("includes the selected gateway model in the stream request body", async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue(
+        streamResponse([
+          new TextEncoder().encode('data: {"status":"complete"}\n\n'),
+        ]),
+      );
+    vi.stubGlobal("fetch", fetchMock);
+
+    await streamDiagramGeneration(
+      {
+        username: "acme",
+        repo: "demo",
+        model: "@cf/meta/llama-3.1-8b-instruct",
+      },
+      { onMessage: vi.fn() },
+    );
+
+    const init = fetchMock.mock.calls[0]?.[1] as RequestInit;
+    expect(JSON.parse(String(init.body))).toMatchObject({
+      model: "@cf/meta/llama-3.1-8b-instruct",
+    });
+  });
+
   it("waits for legacy credential migration before starting the stream", async () => {
     window.localStorage.setItem("openai_api_key", "legacy-openai");
     let acceptMigration!: (response: Response) => void;

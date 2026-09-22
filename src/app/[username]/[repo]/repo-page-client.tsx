@@ -36,6 +36,14 @@ type RepoPageClientProps = {
   initialStateIsAuthoritative?: boolean;
 };
 
+function readModelFromUrl(): string | null {
+  try {
+    return new URLSearchParams(window.location.search).get("model");
+  } catch {
+    return null;
+  }
+}
+
 export default function RepoPageClient({
   username,
   repo,
@@ -44,6 +52,12 @@ export default function RepoPageClient({
   sponsor,
 }: RepoPageClientProps) {
   const [showGithubAccess, setShowGithubAccess] = useState(false);
+  const [gatewayKeyPortalUrl, setGatewayKeyPortalUrl] = useState<string | null>(
+    null,
+  );
+  // Read synchronously so the very first generation already uses the choice;
+  // the value never reaches render output, so there is no hydration mismatch.
+  const [model] = useState<string | null>(readModelFromUrl);
   const normalizedUsername = username.toLowerCase();
   const normalizedRepo = repo.toLowerCase();
   const repository = `${normalizedUsername}/${normalizedRepo}`;
@@ -64,6 +78,7 @@ export default function RepoPageClient({
     normalizedRepo,
     initialState,
     initialStateIsAuthoritative,
+    model ?? undefined,
   );
   const hasDiagram = Boolean(diagram);
   const showApiKeyCta = isApiKeyCtaErrorCode(state.errorCode);
@@ -72,6 +87,23 @@ export default function RepoPageClient({
   useEffect(() => {
     if (hasDiagram || loading) void loadDiagramRenderer();
   }, [hasDiagram, loading]);
+  useEffect(() => {
+    if (!model) return;
+    let cancelled = false;
+    fetch("/api/gateway/models", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { key_portal_url?: unknown } | null) => {
+        if (!cancelled && typeof data?.key_portal_url === "string") {
+          setGatewayKeyPortalUrl(data.key_portal_url);
+        }
+      })
+      .catch(() => {
+        // The dialog falls back to generic instructions without the link.
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [model]);
   useEffect(() => {
     if (!state.persistenceWarning) return;
     toast.warning("图表已生成，但未保存到服务端", {
@@ -131,6 +163,8 @@ export default function RepoPageClient({
           isOpen={showApiKeyDialog}
           onClose={handleCloseApiKeyDialog}
           onSaved={handleApiKeySaved}
+          gatewayMode={Boolean(model)}
+          keyPortalUrl={gatewayKeyPortalUrl}
         />
         {showGithubAccess && (
           <PrivateReposDialog

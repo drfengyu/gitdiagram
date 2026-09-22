@@ -9,6 +9,7 @@ import type {
 interface UseDiagramStreamOptions {
   username: string;
   repo: string;
+  model?: string;
   initialState?: DiagramStreamState;
   onComplete: (result: {
     diagram: string;
@@ -22,6 +23,7 @@ interface UseDiagramStreamOptions {
 export function useDiagramStream({
   username,
   repo,
+  model,
   initialState,
   onComplete,
 }: UseDiagramStreamOptions) {
@@ -214,6 +216,7 @@ export function useDiagramStream({
         {
           username,
           repo,
+          ...(model ? { model } : {}),
           signal: abortController.signal,
         },
         {
@@ -239,7 +242,7 @@ export function useDiagramStream({
         activeGenerationRef.current = null;
       }
     }
-  }, [handleStreamMessage, repo, username]);
+  }, [handleStreamMessage, model, repo, username]);
 
   const cancelGeneration = useCallback(() => {
     activeGenerationRef.current?.abort();

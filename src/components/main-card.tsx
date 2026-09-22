@@ -1,7 +1,7 @@
 "use client";
 
 import styles from "./repository-toolbar.module.css";
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Sparkles } from "lucide-react";
 import { Input } from "~/components/ui/input";
@@ -49,9 +49,30 @@ export default function MainCard({
   const [repoUrl, setRepoUrl] = useState("");
   const [error, setError] = useState("");
   const [activeDropdown, setActiveDropdown] = useState<"export" | null>(null);
+  const [advancedOpen, setAdvancedOpen] = useState(false);
+  const [gatewayModels, setGatewayModels] = useState<string[] | null>(null);
+  const [selectedModel, setSelectedModel] = useState("");
+  const gatewayFetchStarted = useRef(false);
   const router = useRouter();
   const isExampleRepoSelected =
     !isHome && !!username && !!repo && isExampleRepo(username, repo);
+
+  const loadGatewayModels = () => {
+    if (gatewayModels !== null || gatewayFetchStarted.current) return;
+    gatewayFetchStarted.current = true;
+    fetch("/api/gateway/models", { credentials: "same-origin" })
+      .then((response) => (response.ok ? response.json() : null))
+      .then((data: { models?: unknown } | null) => {
+        if (Array.isArray(data?.models)) {
+          setGatewayModels(
+            data.models.filter((m): m is string => typeof m === "string"),
+          );
+        }
+      })
+      .catch(() => {
+        // Leave the section on its empty state; generation still works default.
+      });
+  };
 
   useEffect(() => {
     if (username && repo) {
@@ -72,7 +93,10 @@ export default function MainCard({
     const { username, repo } = parsed;
     const sanitizedUsername = encodeURIComponent(username);
     const sanitizedRepo = encodeURIComponent(repo);
-    router.push(`/${sanitizedUsername}/${sanitizedRepo}`);
+    const modelQuery = selectedModel
+      ? `?model=${encodeURIComponent(selectedModel)}`
+      : "";
+    router.push(`/${sanitizedUsername}/${sanitizedRepo}${modelQuery}`);
   };
 
   const handleExampleClick = (repoPath: string, e: React.MouseEvent) => {
@@ -132,6 +156,67 @@ export default function MainCard({
             {error}
           </p>
         ) : null}
+
+        {isHome && (
+          <div className="space-y-2">
+            <button
+              type="button"
+              onClick={() => {
+                const next = !advancedOpen;
+                setAdvancedOpen(next);
+                if (next) loadGatewayModels();
+              }}
+              aria-expanded={advancedOpen}
+              className="flex items-center gap-1.5 text-sm font-medium text-gray-700 hover:text-black dark:text-neutral-300 dark:hover:text-neutral-100"
+            >
+              高级选项
+              <ChevronDown
+                size={16}
+                aria-hidden="true"
+                className={`transition-transform duration-150 ${advancedOpen ? "rotate-180" : ""}`}
+              />
+            </button>
+            {advancedOpen && (
+              <div className="space-y-2 rounded-md border-[3px] border-black bg-purple-100 p-3 dark:border-[#2d1d4e] dark:bg-[hsl(var(--neo-panel-muted))]">
+                <label
+                  htmlFor="model-select"
+                  className="block text-sm font-semibold text-black dark:text-neutral-100"
+                >
+                  生成模型
+                </label>
+                {gatewayModels === null ? (
+                  <p className="text-sm text-gray-600 dark:text-neutral-400">
+                    正在加载模型列表…
+                  </p>
+                ) : gatewayModels.length === 0 ? (
+                  <p className="text-sm text-gray-600 dark:text-neutral-400">
+                    当前未开放外部模型，将始终使用默认模型。
+                  </p>
+                ) : (
+                  <select
+                    id="model-select"
+                    value={selectedModel}
+                    onChange={(e) => setSelectedModel(e.target.value)}
+                    className="neo-input h-10 w-full rounded-md border-[3px] border-black bg-white px-3 text-sm font-medium text-black dark:border-[#2d1d4e] dark:bg-[hsl(var(--neo-panel))] dark:text-[hsl(var(--foreground))]"
+                  >
+                    <option value="">默认（免费额度）</option>
+                    {gatewayModels.map((model) => (
+                      <option key={model} value={model}>
+                        {model}
+                      </option>
+                    ))}
+                  </select>
+                )}
+                {selectedModel ? (
+                  <p className="text-xs text-gray-600 dark:text-neutral-400">
+                    该模型需要你自己在 Cloudflare AI 控制台创建的 API
+                    Key，费用由控制台计量。
+                  </p>
+                ) : null}
+              </div>
+            )}
+          </div>
+        )}
 
         {!isHome && (
           <div className="space-y-3 sm:space-y-4">

@@ -9,6 +9,7 @@ import {
 import type { DiagramStreamMessage } from "~/features/diagram/types";
 import type { ComplimentaryAdmissionEstimate } from "./complimentary-gate";
 import { buildComplimentaryStageTokenEstimate } from "./complimentary-gate";
+import type { GatewayModelResolution } from "./gateway-config";
 import {
   GRAPH_REASONING_EFFORT,
   GRAPH_TEXT_VERBOSITY,
@@ -47,6 +48,7 @@ interface GenerateValidatedGraphParams {
   provider: AIProvider;
   model: string;
   apiKey?: string;
+  gateway?: GatewayModelResolution | null;
   sessionId: string;
   explanation: string;
   initialGraph?: DiagramGraph;
@@ -141,6 +143,7 @@ export async function generateValidatedGraph(
           schema: diagramGraphSchema,
           schemaName: "diagram_graph",
           apiKey: params.apiKey,
+          gateway: params.gateway,
           reasoningEffort: GRAPH_REASONING_EFFORT,
           textVerbosity: GRAPH_TEXT_VERBOSITY,
           signal: params.signal,
@@ -156,18 +159,22 @@ export async function generateValidatedGraph(
     if (usage) {
       params.accounting.actualUsages.push(usage);
       params.accounting.pendingModelRequestTokenEstimate = 0;
-      audit = withStageUsage(audit, {
-        stage: "graph_attempt",
-        attempt,
-        model: params.model,
-        costSummary: createCostSummary({
-          kind: "actual",
+      // Gateway models are billed by the gateway in its own units, so there is
+      // no USD price to record; the token usage above still feeds the stats log.
+      if (!params.gateway) {
+        audit = withStageUsage(audit, {
+          stage: "graph_attempt",
+          attempt,
           model: params.model,
-          usage,
-          approximate: false,
-        }),
-        createdAt: new Date().toISOString(),
-      });
+          costSummary: createCostSummary({
+            kind: "actual",
+            model: params.model,
+            usage,
+            approximate: false,
+          }),
+          createdAt: new Date().toISOString(),
+        });
+      }
     } else if (!initialGraph) {
       params.accounting.hasCompleteMeasuredUsage = false;
       params.accounting.completedUnmeasuredTokenEstimate +=

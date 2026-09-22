@@ -78,6 +78,9 @@ export async function generateMetadata({
   };
 }
 
+// The `?model=` query is read client-side (see repo-page-client) so the page
+// keeps its static ISR rendering; awaiting searchParams would make every repo
+// visit a dynamic server render.
 export default async function Repo({ params }: RepoPageProps) {
   const { username, repo } = await params;
   if (username !== username.toLowerCase() || repo !== repo.toLowerCase()) {

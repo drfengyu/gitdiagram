@@ -83,6 +83,18 @@ OPENROUTER_SITE_URL=http://localhost:3000
 OPENROUTER_APP_NAME=GitDiagram
 ```
 
+### Optional: user-selectable gateway models
+
+`GATEWAY_BASE_URL` (an OpenAI-compatible base ending in `/v1`, e.g. a
+deployment of the Cloudflare AI Console) plus a comma-separated
+`GATEWAY_MODEL_ALLOWLIST` expose an advanced model selector on the home page.
+Gateway models always require the visitor to supply their own API key (created
+in that console), are billed by the gateway rather than GitDiagram's
+complimentary quota, and are called over `/v1/chat/completions` regardless of
+`AI_API_STYLE`. Leave either variable empty to hide the selector entirely. A
+regeneration with a different model overwrites the same stored diagram for that
+repository.
+
 ## Run
 
 ```bash

@@ -29,6 +29,7 @@ const mocks = vi.hoisted(() => ({
   streamCompletion: vi.fn(),
   unregisterActiveGeneration: vi.fn(),
   writePublicPreview: vi.fn(),
+  estimateTokens: vi.fn(() => 500),
   afterCallback: undefined as undefined | (() => Promise<void>),
   cancellationCallback: undefined as undefined | (() => void),
 }));
@@ -86,6 +87,7 @@ vi.mock("~/server/generate/model-config", async (importOriginal) => ({
 vi.mock("~/server/generate/openai", () => ({
   generateStructuredOutput: mocks.generateStructuredOutput,
   streamCompletion: mocks.streamCompletion,
+  estimateTokens: mocks.estimateTokens,
 }));
 vi.mock("~/server/http/request-credentials", () => ({
   resolveRequestCredentials: mocks.resolveRequestCredentials,
@@ -233,6 +235,52 @@ describe("POST /api/generate/stream", () => {
     expect(mocks.getGithubData).not.toHaveBeenCalled();
     expect(mocks.admitQuota).not.toHaveBeenCalled();
     expect(mocks.streamCompletion).not.toHaveBeenCalled();
+  });
+
+  it("rejects a gateway model without the caller key before opening the SSE stream", async () => {
+    process.env.GATEWAY_BASE_URL = "https://gateway.example/v1";
+    process.env.GATEWAY_MODEL_ALLOWLIST = "@cf/meta/llama-3.1-8b-instruct";
+    try {
+      const response = await POST(
+        request({ model: "@cf/meta/llama-3.1-8b-instruct" }),
+      );
+      const body = (await response.json()) as Record<string, unknown>;
+
+      expect(response.status).toBe(400);
+      expect(body.error_code).toBe("GATEWAY_MODEL_KEY_REQUIRED");
+      expect(mocks.streamCompletion).not.toHaveBeenCalled();
+    } finally {
+      delete process.env.GATEWAY_BASE_URL;
+      delete process.env.GATEWAY_MODEL_ALLOWLIST;
+    }
+  });
+
+  it("runs gateway models without any USD cost machinery", async () => {
+    process.env.GATEWAY_BASE_URL = "https://gateway.example/v1";
+    process.env.GATEWAY_MODEL_ALLOWLIST = "@cf/meta/llama-3.1-8b-instruct";
+    mocks.streamCompletion.mockRejectedValue(new Error("upstream exploded"));
+    try {
+      const response = await POST(
+        request({
+          model: "@cf/meta/llama-3.1-8b-instruct",
+          api_key: "caller-console-key",
+        }),
+      );
+      const events = readSseEvents(await response.text());
+      await mocks.afterCallback?.();
+
+      // No dollar estimate is even attempted for a gateway model, and no
+      // event may carry a cost summary the caller would read as USD.
+      expect(mocks.estimateCost).not.toHaveBeenCalled();
+      expect(events.some((event) => "cost_summary" in event)).toBe(false);
+      const terminal = events.at(-1) as Record<string, unknown>;
+      expect(terminal.status).toBe("error");
+      const audit = terminal.latest_session_audit as Record<string, unknown>;
+      expect(audit.model).toBe("@cf/meta/llama-3.1-8b-instruct");
+    } finally {
+      delete process.env.GATEWAY_BASE_URL;
+      delete process.env.GATEWAY_MODEL_ALLOWLIST;
+    }
   });
 
   it("refunds the rate-limit slot when the repository never resolved", async () => {
