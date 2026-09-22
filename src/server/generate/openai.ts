@@ -9,7 +9,10 @@ import {
   UpstreamProviderError,
   UpstreamStreamIdleTimeoutError,
 } from "~/server/generate/errors";
-import { UPSTREAM_STREAM_IDLE_MS } from "~/server/generate/generation-policy";
+import {
+  GATEWAY_MAX_OUTPUT_TOKENS,
+  UPSTREAM_STREAM_IDLE_MS,
+} from "~/server/generate/generation-policy";
 import {
   getApiStyle,
   getGenerationServiceTier,
@@ -507,7 +510,11 @@ async function streamChatCompletion(
   const watchdog = new AbortController();
   const stream = await client.chat.completions
     .create(
-      { ...request, ...chatExtraParams() },
+      {
+        ...request,
+        ...chatExtraParams(),
+        ...(params.gateway ? { max_tokens: GATEWAY_MAX_OUTPUT_TOKENS } : {}),
+      },
       buildRequestOptions({
         provider,
         signal,
@@ -590,7 +597,11 @@ async function generateStructuredChatOutput<T>(
 
   try {
     const response = await client.chat.completions.create(
-      { ...request, ...chatExtraParams() },
+      {
+        ...request,
+        ...chatExtraParams(),
+        ...(params.gateway ? { max_tokens: GATEWAY_MAX_OUTPUT_TOKENS } : {}),
+      },
       buildRequestOptions({ provider, signal, clientRequestId }),
     );
 

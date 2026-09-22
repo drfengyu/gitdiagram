@@ -21,3 +21,7 @@ export const GRAPH_TEXT_VERBOSITY = "low" as const;
 export const EXPLANATION_ESTIMATED_OUTPUT_TOKENS = 8_000;
 export const GRAPH_ESTIMATED_OUTPUT_TOKENS = 6_000;
 export const GRAPH_RETRY_INPUT_BUFFER_TOKENS = 2_000;
+
+// Cloudflare-style gateways apply a small per-model default output cap (often
+// 256 tokens) when the request omits one, which truncates a graph reply mid-JSON.
+export const GATEWAY_MAX_OUTPUT_TOKENS = 4096;

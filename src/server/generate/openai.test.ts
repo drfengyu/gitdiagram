@@ -33,7 +33,10 @@ import {
   UpstreamProviderError,
   UpstreamStreamIdleTimeoutError,
 } from "~/server/generate/errors";
-import { UPSTREAM_STREAM_IDLE_MS } from "~/server/generate/generation-policy";
+import {
+  GATEWAY_MAX_OUTPUT_TOKENS,
+  UPSTREAM_STREAM_IDLE_MS,
+} from "~/server/generate/generation-policy";
 import {
   generateStructuredOutput,
   streamCompletion,
@@ -864,5 +867,95 @@ describe("upstream stream idle watchdog", () => {
     const retrieveOptions = openAiMocks.responsesRetrieve.mock.calls[0]?.[2] as
       { signal?: AbortSignal } | undefined;
     expect(retrieveOptions?.signal).toBe(caller.signal);
+  });
+});
+
+describe("Cloudflare AI console gateway transport", () => {
+  const gateway = {
+    baseUrl: "https://gateway.example/v1",
+    model: "@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+  };
+
+  beforeEach(() => {
+    vi.stubEnv("OPENAI_API_KEY", "sk-managed-key-must-not-be-used");
+  });
+
+  function sentChatRequest() {
+    const [body] = openAiMocks.chatCompletionsCreate.mock.calls[0] ?? [];
+    return body as Record<string, unknown>;
+  }
+
+  it("routes the stream to the gateway with the caller key and an explicit output budget", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue(
+      asAsyncEvents(GATEWAY_CHUNKS),
+    );
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: gateway.model,
+      systemPrompt: "system",
+      userPrompt: "user",
+      apiKey: "sk-console-key",
+      gateway,
+    });
+    await consume(result.stream);
+
+    expect(openAiMocks.clientOptions).toHaveBeenCalledWith(
+      expect.objectContaining({
+        apiKey: "sk-console-key",
+        baseURL: "https://gateway.example/v1",
+      }),
+    );
+    // Gateways cut replies off at a small per-model default unless the request
+    // names a budget, which truncates a graph mid-JSON.
+    expect(sentChatRequest()).toMatchObject({
+      model: gateway.model,
+      max_tokens: GATEWAY_MAX_OUTPUT_TOKENS,
+    });
+  });
+
+  it("gives the structured graph reply the same output budget", async () => {
+    openAiMocks.chatCompletionsCreate.mockResolvedValue({
+      choices: [
+        {
+          index: 0,
+          message: { content: '{"ok":true}' },
+          finish_reason: "stop",
+        },
+      ],
+      usage: { prompt_tokens: 10, completion_tokens: 5, total_tokens: 15 },
+    });
+
+    await generateStructuredOutput({
+      provider: "openai",
+      model: gateway.model,
+      systemPrompt: "system",
+      userPrompt: "user",
+      schema: z.object({ ok: z.boolean() }),
+      schemaName: "graph",
+      apiKey: "sk-console-key",
+      gateway,
+    });
+
+    expect(sentChatRequest()).toMatchObject({
+      max_tokens: GATEWAY_MAX_OUTPUT_TOKENS,
+    });
+  });
+
+  it("leaves managed chat-style requests without a budget, as the pipeline contract", async () => {
+    vi.stubEnv("AI_API_STYLE", "chat");
+    openAiMocks.chatCompletionsCreate.mockResolvedValue(
+      asAsyncEvents(GATEWAY_CHUNKS),
+    );
+
+    const result = await streamCompletion({
+      provider: "openai",
+      model: "@cf/qwen/qwen3-30b-a3b-fp8",
+      systemPrompt: "system",
+      userPrompt: "user",
+    });
+    await consume(result.stream);
+
+    expect(Object.keys(sentChatRequest())).not.toContain("max_tokens");
   });
 });
