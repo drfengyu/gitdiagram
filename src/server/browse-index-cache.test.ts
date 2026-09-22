@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
+import { BROWSE_PAGE_SIZE } from "~/features/browse/catalog";
 import type { BrowseIndexEntry } from "~/features/browse/catalog";
 
 const mocks = vi.hoisted(() => ({
@@ -51,12 +52,15 @@ describe("browse data cache", () => {
   });
 
   it("serves default pages from the small recent shard", async () => {
-    const recentEntries = Array.from({ length: 20 }, (_, index) => ({
-      username: "recent",
-      repo: `repo-${index}`,
-      lastSuccessfulAt: "2026-03-29T12:00:00.000Z",
-      stargazerCount: index,
-    }));
+    const recentEntries = Array.from(
+      { length: BROWSE_PAGE_SIZE },
+      (_, index) => ({
+        username: "recent",
+        repo: `repo-${index}`,
+        lastSuccessfulAt: "2026-03-29T12:00:00.000Z",
+        stargazerCount: index,
+      }),
+    );
     mocks.readRecentBrowseIndex.mockResolvedValue({
       entries: recentEntries,
       total: 81_178,
@@ -66,7 +70,7 @@ describe("browse data cache", () => {
     await expect(data.getCachedBrowsePage({})).resolves.toMatchObject({
       items: recentEntries,
       total: 81_178,
-      totalPages: 4_059,
+      totalPages: Math.ceil(81_178 / BROWSE_PAGE_SIZE),
     });
     expect(mocks.readBrowseIndex).not.toHaveBeenCalled();
   });

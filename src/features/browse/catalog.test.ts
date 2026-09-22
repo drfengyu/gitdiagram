@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 
 import {
+  BROWSE_PAGE_SIZE,
   getBrowsePageFromPreparedIndex,
   getBrowsePageFromRecentIndex,
   prepareBrowseIndex,
@@ -69,10 +70,13 @@ describe("prepared browse index", () => {
 
 describe("recent browse shard", () => {
   it("serves covered default pages while preserving the full index total", () => {
-    const shardEntries = Array.from({ length: 20 }, (_, index) => ({
-      ...entries[0]!,
-      repo: `repo-${index}`,
-    }));
+    const shardEntries = Array.from(
+      { length: BROWSE_PAGE_SIZE },
+      (_, index) => ({
+        ...entries[0]!,
+        repo: `repo-${index}`,
+      }),
+    );
     const result = getBrowsePageFromRecentIndex(
       { entries: shardEntries, total: 81_178 },
       { page: 1 },
@@ -82,7 +86,7 @@ describe("recent browse shard", () => {
       items: shardEntries,
       total: 81_178,
       page: 1,
-      totalPages: 4_059,
+      totalPages: Math.ceil(81_178 / BROWSE_PAGE_SIZE),
       sort: "recent_desc",
     });
   });

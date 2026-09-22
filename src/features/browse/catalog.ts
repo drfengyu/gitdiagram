@@ -1,4 +1,4 @@
-export const BROWSE_PAGE_SIZE = 20;
+export const BROWSE_PAGE_SIZE = 8;
 const MIN_STAR_FILTER_VALUES = [0, 10, 100, 1000] as const;
 const BROWSE_SORTS = [
   "recent_desc",
