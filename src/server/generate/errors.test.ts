@@ -52,6 +52,51 @@ describe("normalizeGenerationError", () => {
     expect(normalized.message).toContain("暂时不可用");
   });
 
+  it("matches a quota failure a gateway rephrased, via the machine code", () => {
+    const message = "429 Credits exhausted, top up to continue";
+    const apiError = Object.assign(new Error(message), {
+      status: 429,
+      type: "insufficient_quota",
+    });
+
+    const normalized = normalizeGenerationError({
+      provider: "openai",
+      message,
+      error: new UpstreamProviderError(message, { cause: apiError }),
+    });
+
+    expect(normalized.errorCode).toBe("DEFAULT_OPENAI_KEY_QUOTA_EXHAUSTED");
+  });
+
+  it("finds the machine code nested in an error body", () => {
+    const message = "429 quota ran dry";
+    const normalized = normalizeGenerationError({
+      provider: "openai",
+      message,
+      error: new UpstreamProviderError(message, {
+        cause: { error: { message, type: "insufficient_quota" } },
+      }),
+    });
+
+    expect(normalized.errorCode).toBe("DEFAULT_OPENAI_KEY_QUOTA_EXHAUSTED");
+  });
+
+  it("does not confuse a plain rate limit with quota exhaustion", () => {
+    const message = "429 slow down";
+    const apiError = Object.assign(new Error(message), {
+      status: 429,
+      type: "rate_limit_exceeded",
+    });
+
+    const normalized = normalizeGenerationError({
+      provider: "openai",
+      message,
+      error: new UpstreamProviderError(message, { cause: apiError }),
+    });
+
+    expect(normalized.errorCode).toBe("STREAM_FAILED");
+  });
+
   it("keeps quota exhaustion verbatim when the caller supplied the key", () => {
     const message = "insufficient_quota: your account is out of credits";
     const normalized = normalizeGenerationError({

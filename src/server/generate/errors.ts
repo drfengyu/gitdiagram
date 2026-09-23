@@ -110,17 +110,61 @@ export function redactUpstreamProviderTextForSharedRecord(
   return message;
 }
 
-function isOpenAiQuotaExhaustedError(message: string): boolean {
-  const normalized = message.trim().toLowerCase();
-  if (!normalized) {
-    return false;
+const QUOTA_EXHAUSTED_PROVIDER_CODE = "insufficient_quota";
+
+/**
+ * OpenAI-compatible failures carry a machine code (`type`/`code` on the SDK's
+ * APIError, which arrives as the `cause` behind `UpstreamProviderError`) that
+ * outlives any given wording, so it is the match key. Text stays as a fallback
+ * only for paths that lose the structure entirely — mid-stream error events
+ * surface as plain Errors — because a gateway that rephrases the canonical
+ * sentence must not silently cost visitors the bring-your-own-key guidance.
+ */
+function isOpenAiQuotaExhaustedError(params: {
+  message: string;
+  error?: unknown;
+}): boolean {
+  const wrapped =
+    params.error instanceof UpstreamProviderError
+      ? params.error.cause
+      : params.error;
+
+  for (const candidate of quotaErrorCandidates(wrapped)) {
+    if (
+      candidate.code === QUOTA_EXHAUSTED_PROVIDER_CODE ||
+      candidate.type === QUOTA_EXHAUSTED_PROVIDER_CODE
+    ) {
+      return true;
+    }
   }
 
+  const normalized = params.message.trim().toLowerCase();
   return (
     normalized.includes("insufficient_quota") ||
     (normalized.includes("exceeded your current quota") &&
       normalized.includes("billing"))
   );
+}
+
+/** `error`, its SDK-unwrapped cause, and the nested body an APIError carries. */
+function* quotaErrorCandidates(
+  error: unknown,
+): Generator<{ code?: unknown; type?: unknown }> {
+  const seen = new Set<unknown>();
+  let current: unknown = error;
+  while (current && typeof current === "object" && !seen.has(current)) {
+    seen.add(current);
+    yield current as { code?: unknown; type?: unknown };
+    const nested = current as {
+      cause?: unknown;
+      error?: { code?: unknown; type?: unknown };
+    };
+    const next =
+      nested.error && typeof nested.error === "object"
+        ? nested.error
+        : nested.cause;
+    current = next;
+  }
 }
 
 export function normalizeGenerationError(params: {
@@ -157,7 +201,7 @@ export function normalizeGenerationError(params: {
   if (
     params.provider === "openai" &&
     !params.apiKey &&
-    isOpenAiQuotaExhaustedError(params.message)
+    isOpenAiQuotaExhaustedError(params)
   ) {
     return {
       message: DEFAULT_OPENAI_KEY_QUOTA_EXHAUSTED_ERROR,
