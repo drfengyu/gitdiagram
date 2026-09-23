@@ -61,6 +61,27 @@ async function getCachedRepoOwnerExists(username: string) {
   return cached();
 }
 
+// Mirrors the notFound() decisions in Repo below. The segment streams (it has
+// a loading.tsx), so Next serves those renders with HTTP 200 and injects a
+// noindex robots tag; without the same verdict here, the root layout's
+// explicit "index, follow" would contradict it in the served head.
+async function isRepoPageUnavailable(
+  username: string,
+  repo: string,
+): Promise<boolean> {
+  if (
+    !githubUsernameSchema.safeParse(username).success ||
+    !githubRepoSchema.safeParse(repo).success
+  ) {
+    return true;
+  }
+  const stored = await getCachedPublicDiagramState(username, repo);
+  if (stored?.diagram) {
+    return false;
+  }
+  return (await getCachedRepoOwnerExists(username)) === "missing";
+}
+
 export async function generateMetadata({
   params,
 }: RepoPageProps): Promise<Metadata> {
@@ -74,10 +95,12 @@ export async function generateMetadata({
   };
   const title = `${username}/${repo} 架构图 | GitDiagram`;
   const description = `${username}/${repo} 的可交互架构图。`;
+  const unavailable = await isRepoPageUnavailable(username, repo);
 
   return {
     title,
     description,
+    ...(unavailable ? { robots: { index: false, follow: false } } : null),
     alternates: {
       canonical: repositoryPath,
     },
