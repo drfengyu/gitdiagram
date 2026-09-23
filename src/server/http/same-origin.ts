@@ -49,8 +49,19 @@ function getExternalRequestOrigin(request: Request): string | null {
  */
 export function isSameOriginRequest(request: Request): boolean {
   const origin = request.headers.get("origin");
+  const fetchSite = request.headers.get("sec-fetch-site");
+
+  if (!origin) {
+    // Browsers omit Origin entirely on same-origin GET fetches — including
+    // the model-catalog request from the home page's advanced options. The
+    // browser-controlled Sec-Fetch-Site header is the only positive signal
+    // left there, and web content cannot forge it. Anything else without an
+    // Origin still fails closed.
+    return fetchSite === "same-origin";
+  }
+
   const externalOrigin = getExternalRequestOrigin(request);
-  if (!origin || !externalOrigin) {
+  if (!externalOrigin) {
     return false;
   }
 
@@ -65,6 +76,5 @@ export function isSameOriginRequest(request: Request): boolean {
     return false;
   }
 
-  const fetchSite = request.headers.get("sec-fetch-site");
   return !fetchSite || fetchSite === "same-origin";
 }

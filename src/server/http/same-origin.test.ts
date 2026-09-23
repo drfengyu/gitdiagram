@@ -19,6 +19,25 @@ describe("isSameOriginRequest", () => {
     ).toBe(true);
   });
 
+  it("accepts a same-origin GET that carries no Origin header at all", () => {
+    // The shape real browsers send for fetch("/api/gateway/models"): browsers
+    // omit Origin on same-origin GETs and only leave Sec-Fetch-Site behind.
+    expect(
+      isSameOriginRequest(
+        request("https://gitdiagram.com/api/gateway/models", {
+          "sec-fetch-site": "same-origin",
+        }),
+      ),
+    ).toBe(true);
+    expect(
+      isSameOriginRequest(
+        request("https://gitdiagram.com/api/gateway/models", {
+          "sec-fetch-site": "cross-site",
+        }),
+      ),
+    ).toBe(false);
+  });
+
   it("uses forwarded host and protocol behind a TLS-terminating proxy", () => {
     expect(
       isSameOriginRequest(
