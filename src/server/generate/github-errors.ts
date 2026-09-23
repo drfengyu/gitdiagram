@@ -3,6 +3,7 @@ import type { GenerationErrorCode } from "~/features/diagram/error-codes";
 /** Distinguishes which GitHub read produced a failure, independent of its text. */
 export type GitHubErrorCode =
   | "repository_not_found"
+  | "user_not_found"
   | "repository_empty"
   | "repository_too_large"
   | "token_required"

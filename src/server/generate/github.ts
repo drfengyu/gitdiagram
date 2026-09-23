@@ -274,6 +274,35 @@ async function getRepoMetadata(
   };
 }
 
+const USER_NOT_FOUND_ERROR = "未找到该 GitHub 用户。";
+
+/**
+ * Whether a GitHub owner account exists. Backs the repo page's 404 decision:
+ * a missing account is unambiguous, while a repo 404 is not (GitHub answers
+ * 404 for repositories the requester cannot see too), so only this check may
+ * short-circuit a page visit. Anything but a clean 404 fails open to
+ * "unknown" — throttled or broken checks must never 404 a live repo.
+ */
+export async function checkGitHubUserExists(
+  username: string,
+): Promise<"exists" | "missing" | "unknown"> {
+  try {
+    await fetchJson(
+      `https://api.github.com/users/${encodeURIComponent(username)}`,
+      await getGitHubApiHeaders(),
+      USER_NOT_FOUND_ERROR,
+      undefined,
+      "user_not_found",
+    );
+    return "exists";
+  } catch (error) {
+    if (hasGitHubErrorCode(error, "user_not_found")) {
+      return "missing";
+    }
+    return "unknown";
+  }
+}
+
 async function getFileTree(
   username: string,
   repo: string,

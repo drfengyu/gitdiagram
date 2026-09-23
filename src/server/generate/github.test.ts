@@ -10,6 +10,7 @@ vi.mock("~/server/github-auth", () => ({
 
 import {
   GITHUB_REQUEST_TIMEOUT_MS,
+  checkGitHubUserExists,
   getGithubData,
   MAX_INCLUDED_FILE_TREE_CHARACTERS,
   MAX_README_BYTES,
@@ -559,5 +560,49 @@ describe("getGithubData repository input bounds", () => {
       getGithubData("acme", "demo", "caller", controller.signal),
     ).rejects.toThrow();
     expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("checkGitHubUserExists", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    getGitHubApiHeaders.mockReset();
+    getGitHubApiHeaders.mockResolvedValue({
+      Accept: "application/vnd.github+json",
+    });
+  });
+
+  it("answers exists for a live account", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ login: "acme" })),
+    );
+
+    await expect(checkGitHubUserExists("acme")).resolves.toBe("exists");
+  });
+
+  it("answers missing for a clean 404", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ message: "Not Found" }, 404)),
+    );
+
+    await expect(checkGitHubUserExists("nobody")).resolves.toBe("missing");
+  });
+
+  it("fails open on throttling and transport failures", async () => {
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => jsonResponse({ message: "Forbidden" }, 403)),
+    );
+    await expect(checkGitHubUserExists("acme")).resolves.toBe("unknown");
+
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("socket died");
+      }),
+    );
+    await expect(checkGitHubUserExists("acme")).resolves.toBe("unknown");
   });
 });

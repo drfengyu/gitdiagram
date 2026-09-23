@@ -1,7 +1,12 @@
 import type { Metadata } from "next";
 import { unstable_cache } from "next/cache";
-import { permanentRedirect } from "next/navigation";
+import { notFound, permanentRedirect } from "next/navigation";
 import { SITE_URL } from "~/lib/site";
+import { checkGitHubUserExists } from "~/server/generate/github";
+import {
+  githubRepoSchema,
+  githubUsernameSchema,
+} from "~/server/generate/types";
 import { getStoredDiagramState } from "~/server/storage/artifact-store";
 import { getSponsorPlacements } from "~/server/sponsor-cache";
 
@@ -39,6 +44,21 @@ async function getCachedPublicDiagramState(username: string, repo: string) {
   );
 
   return getCachedState();
+}
+
+// Repo-level 404s cannot drive this decision — GitHub answers 404 for private
+// repositories as well, and those pages are legitimately usable after the
+// visitor attaches a token. A missing owner account is unambiguous, and a
+// diagram already in storage proves the repo existed at generation time, so
+// the GitHub call is skipped entirely for every warmed page.
+async function getCachedRepoOwnerExists(username: string) {
+  const cached = unstable_cache(
+    () => checkGitHubUserExists(username),
+    ["repo-owner-exists", username.toLowerCase()],
+    { revalidate: 3600 },
+  );
+
+  return cached();
 }
 
 export async function generateMetadata({
@@ -86,7 +106,20 @@ export default async function Repo({ params }: RepoPageProps) {
   if (username !== username.toLowerCase() || repo !== repo.toLowerCase()) {
     permanentRedirect(getRepoPagePath(username, repo));
   }
+  // Malformed segments can never name a GitHub repository; reject them
+  // without spending a GitHub call or starting the client generation flow.
+  if (
+    !githubUsernameSchema.safeParse(username).success ||
+    !githubRepoSchema.safeParse(repo).success
+  ) {
+    notFound();
+  }
   const initialState = await getCachedPublicDiagramState(username, repo);
+  if (!initialState?.diagram) {
+    if ((await getCachedRepoOwnerExists(username)) === "missing") {
+      notFound();
+    }
+  }
   const sponsorPlacements = await getSponsorPlacements();
 
   return (
