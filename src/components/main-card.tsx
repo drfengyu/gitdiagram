@@ -91,6 +91,13 @@ export default function MainCard({
     }
   }, [username, repo]);
 
+  // The chosen model only survives into the generation when it rides along
+  // in the URL — the repo page reads ?model= synchronously, and without it
+  // the server silently falls back to the operator default model. Example
+  // chips must carry it just like typed URLs do.
+  const modelQuery = () =>
+    selectedModel ? `?model=${encodeURIComponent(selectedModel)}` : "";
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -104,15 +111,12 @@ export default function MainCard({
     const { username, repo } = parsed;
     const sanitizedUsername = encodeURIComponent(username);
     const sanitizedRepo = encodeURIComponent(repo);
-    const modelQuery = selectedModel
-      ? `?model=${encodeURIComponent(selectedModel)}`
-      : "";
-    router.push(`/${sanitizedUsername}/${sanitizedRepo}${modelQuery}`);
+    router.push(`/${sanitizedUsername}/${sanitizedRepo}${modelQuery()}`);
   };
 
   const handleExampleClick = (repoPath: string, e: React.MouseEvent) => {
     e.preventDefault();
-    router.push(repoPath);
+    router.push(`${repoPath}${modelQuery()}`);
   };
 
   const handleDropdownToggle = (dropdown: "export") => {
