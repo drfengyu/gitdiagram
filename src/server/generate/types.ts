@@ -36,7 +36,7 @@ const generateRequestSchema = z
   .refine(
     ({ cancel_token: cancelToken, session_id: sessionId }) =>
       Boolean(cancelToken) === Boolean(sessionId),
-    { message: "session_id and cancel_token must be provided together." },
+    { message: "session_id 和 cancel_token 必须同时提供。" },
   );
 
 type GenerateRequest = z.infer<typeof generateRequestSchema>;
@@ -58,7 +58,7 @@ export async function parseGenerateRequest(
     return {
       success: false,
       status: 415,
-      error: "Content-Type must be application/json.",
+      error: "请求内容类型必须为 application/json。",
       errorCode: "VALIDATION_ERROR",
     };
   }

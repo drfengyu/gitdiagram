@@ -8,6 +8,19 @@ interface GenerationAuditPanelProps {
   error?: string;
 }
 
+// Persisted stage names, lowercased because records written before the
+// snake_case convention stored them uppercased. Anything unknown renders
+// verbatim; a new stage must never depend on the UI shipping in lockstep.
+const FAILURE_STAGE_LABELS: Record<string, string> = {
+  started: "读取仓库",
+  graph_validating: "图规划校验",
+  browser_render: "浏览器渲染",
+};
+
+function failureStageLabel(stage: string): string {
+  return FAILURE_STAGE_LABELS[stage.toLowerCase()] ?? stage;
+}
+
 function renderCostSummary(
   label: string,
   costSummary: GenerationCostSummary | null | undefined,
@@ -47,8 +60,8 @@ export function GenerationAuditPanel({
         <details className="mt-4 text-left">
           <summary className="neo-link cursor-pointer">技术细节</summary>
           {audit?.failureStage && (
-            <p className="mt-2 text-xs tracking-wide text-neutral-500 uppercase dark:text-neutral-400">
-              失败阶段：{audit.failureStage}
+            <p className="mt-2 text-xs tracking-wide text-neutral-500 dark:text-neutral-400">
+              失败阶段：{failureStageLabel(audit.failureStage)}
             </p>
           )}
           {diagnosticMessage && (

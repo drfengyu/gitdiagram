@@ -73,7 +73,7 @@ export async function POST(request: Request) {
       return jsonResponse(
         {
           ok: false,
-          error: "Cross-origin cost estimation is not allowed.",
+          error: "不允许跨域调用成本预估。",
           error_code: "CROSS_ORIGIN_FORBIDDEN",
         },
         { status: 403, requestId },

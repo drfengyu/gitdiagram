@@ -46,6 +46,9 @@ const GENERATION_ERROR_CODES = [
   "GRAPH_VALIDATION_FAILED",
   "VALIDATION_ERROR",
   "CROSS_ORIGIN_FORBIDDEN",
+  /** The cost endpoint's unknown-failure branch; must stay in the union or
+   * every consumer's isGenerationErrorCode guard silently drops it. */
+  "COST_ESTIMATION_FAILED",
 ] as const;
 
 export type GenerationErrorCode = (typeof GENERATION_ERROR_CODES)[number];
