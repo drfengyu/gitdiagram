@@ -10,6 +10,7 @@ interface GitHubRepoResponse {
   default_branch?: string;
   private?: boolean;
   stargazers_count?: number;
+  language?: string | null;
 }
 
 interface GitHubTreeItem {
@@ -44,6 +45,8 @@ export interface GithubData {
   /** Metadata/tree were authorized as public after a stale caller token failed. */
   usedPublicFallback?: boolean;
   stargazerCount: number | null;
+  /** GitHub's language classification of the repo; null when it reports none. */
+  language?: string | null;
   pathTypes: ReadonlyMap<string, RepositoryPathType>;
   sourceBlobs?: ReadonlyMap<string, SourceBlob>;
 }
@@ -258,6 +261,7 @@ async function getRepoMetadata(
   defaultBranch: string;
   isPrivate: boolean;
   stargazerCount: number | null;
+  language: string | null;
 }> {
   const data = await fetchJson<GitHubRepoResponse>(
     `https://api.github.com/repos/${username}/${repo}`,
@@ -271,6 +275,7 @@ async function getRepoMetadata(
     isPrivate: Boolean(data.private),
     stargazerCount:
       typeof data.stargazers_count === "number" ? data.stargazers_count : null,
+    language: typeof data.language === "string" ? data.language : null,
   };
 }
 
@@ -494,12 +499,8 @@ async function fetchGithubData(
 ): Promise<GithubData> {
   const hasCallerGithubPat = Boolean(githubPat?.trim());
   const headers = await getGitHubApiHeaders({ githubPat });
-  const { defaultBranch, isPrivate, stargazerCount } = await getRepoMetadata(
-    username,
-    repo,
-    headers,
-    signal,
-  );
+  const { defaultBranch, isPrivate, stargazerCount, language } =
+    await getRepoMetadata(username, repo, headers, signal);
 
   // GitHub App installation tokens and the server PAT pool may be able to read
   // private repositories. They improve public API rate limits, but they must
@@ -537,6 +538,7 @@ async function fetchGithubData(
     readme: readmeResult.ok ? readmeResult.value : "",
     isPrivate,
     stargazerCount,
+    language,
     pathTypes: tree.pathTypes,
     sourceBlobs: tree.sourceBlobs,
   };

@@ -848,6 +848,8 @@ export async function POST(request: Request) {
           );
           successfulDiagramState = {
             stargazerCount: githubData.stargazerCount,
+            language: githubData.language,
+            defaultBranch: githubData.defaultBranch,
             explanation,
             graph: validGraph,
             diagram,

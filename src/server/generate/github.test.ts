@@ -39,6 +39,7 @@ function createGitHubFetch(
         default_branch: "main",
         private: false,
         stargazers_count: 42,
+        language: "TypeScript",
       });
     }
     if (url.includes("/git/trees/main?recursive=1")) {
@@ -160,6 +161,7 @@ describe("getGithubData repository input bounds", () => {
       readme: "# Demo",
       isPrivate: false,
       stargazerCount: 42,
+      language: "TypeScript",
       pathTypes: new Map([
         ["src/user.login.ts", "blob"],
         ["src/main.ts", "blob"],

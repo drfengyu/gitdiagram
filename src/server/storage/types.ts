@@ -8,6 +8,11 @@ export interface DiagramArtifact {
   username: string;
   repo: string;
   stargazerCount: number | null;
+  /** GitHub's language classification, captured at generation time. Absent
+   * on artifacts written before the field existed; readers must treat
+   * missing as unknown. */
+  language?: string | null;
+  defaultBranch?: string;
   diagram: string;
   explanation: string;
   graph: GenerationSessionAudit["graph"];

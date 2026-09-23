@@ -53,6 +53,33 @@ describe("getRepoSocialMetadata", () => {
     });
   });
 
+  it("surfaces language and branch captured at generation time", async () => {
+    getStoredDiagramArtifact.mockResolvedValue({
+      artifact: {
+        version: 1,
+        visibility: "public",
+        username: "owner",
+        repo: "repo",
+        stargazerCount: 42,
+        language: "TypeScript",
+        defaultBranch: "trunk",
+      },
+      location: {
+        visibility: "public",
+        bucket: "bucket",
+        artifactKey: "artifact",
+        statusKey: "status",
+      },
+    });
+
+    await expect(getRepoSocialMetadata("owner", "repo")).resolves.toEqual({
+      defaultBranch: "trunk",
+      isPrivate: false,
+      language: "TypeScript",
+      stargazerCount: 42,
+    });
+  });
+
   it("rejects malformed route segments before touching storage", async () => {
     await expect(
       getRepoSocialMetadata("owner name", "repo/name"),

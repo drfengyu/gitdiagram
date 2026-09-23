@@ -111,6 +111,8 @@ export async function saveSuccessfulDiagramState(params: {
   githubPat?: string;
   visibility: ArtifactVisibility;
   stargazerCount: number | null;
+  language?: string | null;
+  defaultBranch?: string;
   explanation: string;
   graph: DiagramGraph;
   diagram: string;
@@ -125,6 +127,8 @@ export async function saveSuccessfulDiagramState(params: {
     githubPat: params.githubPat,
     visibility: params.visibility,
     stargazerCount: params.stargazerCount,
+    language: params.language,
+    defaultBranch: params.defaultBranch,
     diagram: params.diagram,
     explanation: params.explanation,
     graph: params.graph,

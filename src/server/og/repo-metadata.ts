@@ -33,9 +33,10 @@ export async function getRepoSocialMetadata(
     }
 
     return {
-      defaultBranch: null,
+      // Artifacts written before these fields existed read as unknown.
+      defaultBranch: stored.artifact.defaultBranch ?? null,
       isPrivate: false,
-      language: null,
+      language: stored.artifact.language ?? null,
       stargazerCount: stored.artifact.stargazerCount,
     };
   } catch (error) {

@@ -22,6 +22,9 @@ import type { ArtifactVisibility } from "./types";
 
 export interface SuccessfulDiagramState {
   stargazerCount: number | null;
+  /** Captured from GitHub at generation time for the share-card metadata. */
+  language?: string | null;
+  defaultBranch?: string;
   explanation: string;
   graph: DiagramGraph;
   diagram: string;
@@ -67,6 +70,8 @@ export async function persistGenerationResult(params: {
         githubPat: params.githubPat,
         visibility: params.visibility,
         stargazerCount: successfulDiagramState.stargazerCount,
+        language: successfulDiagramState.language,
+        defaultBranch: successfulDiagramState.defaultBranch,
         explanation: successfulDiagramState.explanation,
         graph: successfulDiagramState.graph,
         diagram: successfulDiagramState.diagram,
