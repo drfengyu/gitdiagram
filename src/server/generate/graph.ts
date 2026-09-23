@@ -232,7 +232,7 @@ function escapeMermaidText(value: string): string {
     .replace(/\)/g, "&#41;")
     .trim();
 
-  return escaped || "Unnamed";
+  return escaped || "未命名";
 }
 
 const genericNodeTypes = new Set([
@@ -247,6 +247,8 @@ const genericNodeTypes = new Set([
   "project",
   "repo",
   "repository",
+  "runtime",
+  "external",
   "service",
   "system",
   "utility",

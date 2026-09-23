@@ -314,9 +314,47 @@ describe("compileDiagramGraph", () => {
       },
     });
 
-    expect(diagram).toContain('subgraph group_runtime["Unnamed"]');
-    expect(diagram).toContain('node_api["Unnamed<br/>Unnamed"]');
-    expect(diagram).toContain('node_api -->|"Unnamed"| node_api');
+    expect(diagram).toContain('subgraph group_runtime["未命名"]');
+    expect(diagram).toContain('node_api["未命名<br/>未命名"]');
+    expect(diagram).toContain('node_api -->|"未命名"| node_api');
+    await expect(validateMermaidSyntax(diagram)).resolves.toMatchObject({
+      valid: true,
+    });
+  });
+
+  it("drops generic English type words from the node detail line", async () => {
+    const diagram = compileDiagramGraph({
+      username: "acme",
+      repo: "demo",
+      branch: "main",
+      graph: {
+        groups: [],
+        nodes: [
+          {
+            id: "server",
+            label: "HTTP 服务器",
+            type: "external",
+            description: null,
+            groupId: null,
+            path: null,
+            shape: "box",
+          },
+          {
+            id: "app",
+            label: "应用对象",
+            type: "Runtime",
+            description: null,
+            groupId: null,
+            path: null,
+            shape: "box",
+          },
+        ],
+        edges: [],
+      },
+    });
+
+    expect(diagram).toContain('node_server["HTTP 服务器"]');
+    expect(diagram).toContain('node_app["应用对象"]');
     await expect(validateMermaidSyntax(diagram)).resolves.toMatchObject({
       valid: true,
     });
